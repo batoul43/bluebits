@@ -1,58 +1,46 @@
 import 'package:bluebits_app/core/theming/colors.dart';
-import 'package:bluebits_app/fetures/auth/data/api_service/auth_api.dart';
-import 'package:bluebits_app/fetures/auth/data/repositry/auth_signup_repo.dart';
-import 'package:bluebits_app/fetures/auth/presentation/logic/cubit/authcubit_cubit.dart';
-import 'package:bluebits_app/fetures/auth/presentation/secrens/signup_screen.dart';
-import 'package:bluebits_app/fetures/ondoarding/data/onboarding_model.dart';
+import 'package:bluebits_app/features/auth/presentation/screens/signup_screen.dart';
+import 'package:bluebits_app/features/onboarding/data/onboarding_model.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+class OnboardingScreen extends StatelessWidget {
+  OnboardingScreen({super.key});
 
-  @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  PageController pageControllerr = PageController();
-  int currentPage = 0;
+  final PageController pageControllerr = PageController();
+  final ValueNotifier<int> currentPage = ValueNotifier<int>(0);
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     return SafeArea(
       child: Scaffold(
-        floatingActionButton: FloatingActionButton(
-          shape: CircleBorder(),
-          backgroundColor: ColorsManager.lightsurface,
-          child: currentPage == 3
-              ? Icon(Icons.check, color: ColorsManager.iconscolor)
-              : Icon(Icons.arrow_forward, color: ColorsManager.iconscolor),
-          onPressed: () async {
-            if (currentPage == 3) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BlocProvider(
-                    create: (context) => AuthcubitCubit(
-                      authsignuprepo: AuthSignupRepo(authsignup: AuthApi()),
-                    ),
-                    child: SignupScreen(),
-                  ),
-                ),
-              );
-            }
-            pageControllerr.nextPage(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.bounceInOut,
+        floatingActionButton: ValueListenableBuilder<int>(
+          valueListenable: currentPage,
+          builder: (context, value, child) {
+            return FloatingActionButton(
+              shape: CircleBorder(),
+              backgroundColor: ColorsManager.white,
+              child: value == 3
+                  ? Icon(Icons.check, color: ColorsManager.iconscolor)
+                  : Icon(Icons.arrow_forward, color: ColorsManager.iconscolor),
+              onPressed: () async {
+                if (value == 3) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SignupScreen()),
+                  );
+                }
+                pageControllerr.nextPage(
+                  duration: Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
             );
           },
         ),
         body: PageView.builder(
           controller: pageControllerr,
           onPageChanged: (index) {
-            setState(() {});
-            currentPage = index;
+            currentPage.value = index;
           },
           itemCount: onboardingcontent.length,
           itemBuilder: (context, index) => Container(
@@ -82,8 +70,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   SizedBox(height: size.height * (25 / size.height)),
                   Text(
-                    textAlign: TextAlign.center,
                     onboardingcontent[index].body,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: size.width * (16 / size.width),
                       color: ColorsManager.textWhite.withOpacity(0.7),
@@ -105,21 +93,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   SizedBox(height: size.height * (35 / size.height)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      return Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: ColorsManager.lightsurface,
-                          ),
-                          height: 10,
-                          width: currentPage == index ? 20 : 10,
-                        ),
+                  ValueListenableBuilder(
+                    valueListenable: currentPage,
+                    builder: (context, value, child) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(4, (index) {
+                          return Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: ColorsManager.white,
+                              ),
+                              height: 10,
+                              width: value == index ? 20 : 10,
+                            ),
+                          );
+                        }),
                       );
-                    }),
+                    },
                   ),
                 ],
               ),

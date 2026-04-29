@@ -13,9 +13,10 @@ dependencies:
   flutter_bloc: ^9.1.1
   flutter_localizations: 
     sdk: flutter
+  flutter_secure_storage: ^10.0.0
   flutter_svg: ^2.2.4
   http: ^1.6.0
-  secure_shared_preferences: ^0.0.4
+
 
 dev_dependencies:
   flutter_test:

@@ -5,7 +5,7 @@ class ColorsManager {
   static Color darkTextPrimary = Colors.white;
   static Color darkTextSecondary = Color(0xFF9E9E9E);
   static Color lightBackground = Color(0xFFF8F9FA);
-  static Color lightsurface = Colors.white;
+
   static Color iconscolor = Colors.blue;
   static Color darkBackground = Color(0xFF0D1B2E);
   static const Color darkSecondary = Color(0xFF1A2B42);
