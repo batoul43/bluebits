@@ -3,16 +3,15 @@ import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.d
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/custombutton.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/customtextfield.dart';
-import 'package:bluebits_app/features/home.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class ForgetPassword extends StatelessWidget {
   ForgetPassword({super.key});
 
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
   final RegExp _emailRegex = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
@@ -20,6 +19,8 @@ class ForgetPassword extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final theme = Theme.of(context);
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Form(
@@ -27,178 +28,155 @@ class ForgetPassword extends StatelessWidget {
         child: Container(
           height: size.height,
           width: size.width,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: ColorsManager.backgroundgradient),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(colors: ColorsManager.backgroundGradient),
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: size.width * (10 / size.width),
-            ),
+            padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
             child: SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Image(
-                    width: size.width * (250 / size.width),
-                    height: size.height * (100 / size.height),
-                    image: AssetImage('assets/images/logo.png'),
-                  ),
+                  const SizedBox(height: 60),
+                  // أيقونة توضيحية لعملية استعادة كلمة المرور
                   Container(
-                    width: size.width - size.width * (10 / size.width),
-                    height: size.height - size.height * (100 / size.height),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: ColorsManager.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.lock_reset_rounded,
+                      color: ColorsManager.cyan,
+                      size: 80,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  Container(
+                    width: size.width,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(25),
-                      color: ColorsManager.lightSecondary.withOpacity(0.2),
-                      border: Border.all(color: ColorsManager.lightSecondary),
+                      color: ColorsManager.white.withOpacity(0.15),
+                      border: Border.all(
+                        color: ColorsManager.white.withOpacity(0.3),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          blurStyle: BlurStyle.outer,
-                          spreadRadius: 100,
-                          color: Colors.black.withOpacity(0.2),
-                          offset: Offset(0, 10),
-                          blurRadius: 100,
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(35.0),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Center(
-                              child: Text(
-                                'نسيت كلمة المرور؟',
-                                style: TextStyle(
-                                  color: ColorsManager.textWhite,
-                                  fontSize: 28,
-                                ),
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Text(
+                              'استعادة كلمة المرور',
+                              style: theme.textTheme.displayLarge?.copyWith(
+                                color: ColorsManager.whiteText,
+                                fontSize: 22,
                               ),
                             ),
-                            SizedBox(height: 40),
-                            Text(
-                              'أدخل بريدك الإلكتروني وسنرسل لك رمزاً لتغيير كلمة المرور الخاصة بك',
-                              style: TextStyle(
-                                color: ColorsManager.textWhite,
-                                fontSize: 14,
-                              ),
+                          ),
+                          const SizedBox(height: 15),
+                          const Text(
+                            'أدخل بريدك الإلكتروني الجامعي المسجل وسنرسل لك رابطاً لتعيين كلمة مرور جديدة.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: ColorsManager.whiteText,
+                              fontSize: 14,
                             ),
+                          ),
+                          const SizedBox(height: 30),
 
-                            SizedBox(height: 60),
-                            CustomTextField(
-                              icon: Icons.email_outlined,
-                              isPassword: false,
-                              controller: _emailController,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "البريد الإلكتروني مطلوب";
-                                }
-                                if (!_emailRegex.hasMatch(value)) {
-                                  return "صيغة البريد الإلكتروني غير صحيحة";
-                                }
-                                return null;
-                              },
-                              labelText: 'البريد الإلكتروني',
-                              hintText: 'example@univ.com',
-                            ),
-                            SizedBox(height: 70),
+                          CustomTextField(
+                            icon: Icons.email_outlined,
+                            isPassword: false,
+                            controller: _emailController,
+                            labelText: 'البريد الإلكتروني',
+                            hintText: 'example@univ-aleppo.com',
+                            validator: (value) {
+                              if (value == null || value.isEmpty)
+                                return "البريد الإلكتروني مطلوب";
+                              if (!_emailRegex.hasMatch(value))
+                                return "صيغة البريد غير صحيحة";
+                              return null;
+                            },
+                          ),
 
-                            BlocConsumer<AuthCubit, AuthState>(
-                              listener: (context, state) {
-                                if (state is AuthForgetPassword) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(state.message),
-                                      backgroundColor:
-                                          ColorsManager.darkAccentCyan,
+                          const SizedBox(height: 30),
+
+                          BlocConsumer<AuthCubit, AuthState>(
+                            listener: (context, state) {
+                              if (state is AuthSuccess) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "تم إرسال رابط الاستعادة بنجاح",
                                     ),
-                                  );
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => Home(),
-                                    ),
-                                  );
-                                } else if (state is AuthFailed) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(state.message),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                              builder: (context, state) {
-                                return CustomButton(
-                                  text: state is AuthLoading
-                                      ? 'جاري الإرسال ... '
-                                      : 'إرسال رمز التحقق',
-                                  onPressed: () {
-                                    if (_formKey.currentState!.validate()) {
-                                      context.read<AuthCubit>().forgetpassword(
-                                        _emailController.text,
-                                      );
-                                    }
-                                  },
+                                    backgroundColor: ColorsManager.green,
+                                  ),
                                 );
-                              },
-                            ),
+                              } else if (state is AuthFailed) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(state.message),
+                                    backgroundColor: ColorsManager.redaccent,
+                                  ),
+                                );
+                              }
+                            },
+                            builder: (context, state) {
+                              return CustomButton(
+                                text: state is AuthLoading
+                                    ? 'جاري الإرسال... '
+                                    : 'إرسال الرابط',
+                                onPressed: () {
+                                  if (_formKey.currentState!.validate()) {
+                                    // هنا يتم استدعاء وظيفة استعادة كلمة المرور من الـ Cubit
+                                    // context.read<AuthCubit>().forgetPassword(_emailController.text);
+                                  }
+                                },
+                              );
+                            },
+                          ),
 
-                            SizedBox(height: 18),
-                            Row(
-                              children: [
-                                Text(' تذكرت كلمة المرور؟ '),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => SigninScreen(),
-                                      ),
-                                    );
-                                  },
-                                  child: Text('سجل الدخول'),
-                                ),
-                              ],
+                          const SizedBox(height: 25),
+
+                          Center(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.arrow_back_ios,
+                                    color: ColorsManager.cyan,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  const Text(
+                                    'العودة لتسجيل الدخول',
+                                    style: TextStyle(
+                                      color: ColorsManager.cyan,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buttonSigninWithoutEmail(String image) {
-    return InkWell(
-      onTap: () {},
-      child: Container(
-        width: 60,
-        height: 50,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(color: ColorsManager.darkSecondary.withOpacity(0.2)),
-          ],
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: ColorsManager.darkAccentCyan.withOpacity(0.4),
-            width: 1.5,
-          ),
-        ),
-        child: Center(
-          child: SvgPicture.asset(
-            image,
-            fit: BoxFit.cover,
-            clipBehavior: Clip.hardEdge,
-            height: 30,
           ),
         ),
       ),

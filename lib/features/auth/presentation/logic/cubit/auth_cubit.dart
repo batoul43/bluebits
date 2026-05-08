@@ -90,4 +90,28 @@ class AuthCubit extends Cubit<AuthState> {
       return null;
     }
   }
+
+  Future<void> checkAuthStatus() async {
+    try {
+      emit(AuthLoading());
+      final token = await CachHelper.getValue('Token');
+      print(token);
+      if (token == null) {
+        emit(Unauthenticated());
+        return;
+      }
+
+      final userData = await authrepo.checkAuthStatus(token);
+      print(userData);
+      if (userData == 'Authenticated') {
+        emit(Authenticated());
+      } else if (userData == 'Unauthenticated') {
+        emit(Unauthenticated());
+      } else {
+        emit(AuthFailed(message: 'Error checking authentication status'));
+      }
+    } catch (e) {
+      emit(AuthFailed(message: e.toString()));
+    }
+  }
 }

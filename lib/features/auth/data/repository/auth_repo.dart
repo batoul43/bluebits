@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/data/models/usermodel.dart';
@@ -38,6 +40,25 @@ class AuthRepo {
       return ForgetPassword.fromjson(forgetpassword);
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<String> checkAuthStatus(String token) async {
+    try {
+      final response = await authApi.checkAuthStatus(token);
+      print('------------------------------------------');
+      print(response.statusCode);
+      print('------------------------------------------');
+      if (response != null && response.statusCode == 200) {
+        return 'Authenticated';
+      } else if (response != null && response.statusCode == 401) {
+        return 'Unauthenticated';
+      } else {
+        return 'errorUnauthenticated';
+      }
+    } catch (e) {
+      print(e.toString());
+      return 'errorUnauthenticated';
     }
   }
 }

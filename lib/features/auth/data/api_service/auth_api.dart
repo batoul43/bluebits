@@ -66,4 +66,27 @@ class AuthApi {
       return null;
     }
   }
+
+  Future<dynamic> checkAuthStatus(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}me'),
+        headers: {
+          'Content-type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      print('------------------------------------------');
+      print(response.body);
+      print(response.statusCode);
+      print('------------------------------------------');
+      if (response.statusCode == 200) {
+        return response;
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
 }

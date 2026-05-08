@@ -16,15 +16,13 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: ColorsManager.darkAccentCyan,
-          foregroundColor: ColorsManager.textWhite,
+          backgroundColor: ColorsManager.cyan,
+          foregroundColor: ColorsManager.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25), // زوايا منحنية تشبه الصور
           ),
           elevation: 5,
-          shadowColor: ColorsManager.darkAccentCyan.withOpacity(
-            0.4,
-          ), // تأثير توهج خفيف
+          shadowColor: ColorsManager.cyan.withOpacity(0.4), // تأثير توهج خفيف
         ),
         child: Text(
           text,

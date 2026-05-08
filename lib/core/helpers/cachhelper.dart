@@ -5,7 +5,7 @@ class CachHelper {
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   // دالة لحفظ البيانات (مثل الـ Token)
-  static Future<void> setValue(String key, String value) async {
+  static Future<void> setValue(String key, dynamic value) async {
     await _storage.write(
       key: key,
       value: value,
@@ -15,7 +15,7 @@ class CachHelper {
   }
 
   // دالة لجلب البيانات
-  static Future<String?> getValue(String key) async {
+  static Future<dynamic> getValue(String key) async {
     return await _storage.read(
       key: key,
       aOptions: const AndroidOptions(encryptedSharedPreferences: true),

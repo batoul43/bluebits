@@ -1,1 +1,1 @@
-
+bool isopen = false;

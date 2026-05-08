@@ -26,7 +26,7 @@ class AppButton extends StatelessWidget {
         boxShadow: isDarkMode
             ? [
                 BoxShadow(
-                  color: ColorsManager.mainBlue.withOpacity(0.3),
+                  color: ColorsManager.blue.withOpacity(0.3),
                   blurRadius: 15,
                   offset: Offset(0, 4),
                 ),
@@ -35,7 +35,7 @@ class AppButton extends StatelessWidget {
       ),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: ColorsManager.mainBlue,
+          backgroundColor: ColorsManager.blue,
           elevation: 0,
           shape: BeveledRectangleBorder(
             borderRadius: BorderRadiusGeometry.circular(16),

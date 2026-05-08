@@ -34,12 +34,12 @@ class _CustomTextFieldState extends State<CustomTextField> {
       validator: widget.validator,
       controller: widget.controller,
       obscureText: widget.isPassword ? hidepassword : false,
-      style: TextStyle(color: ColorsManager.textWhite, fontSize: 12),
+      style: TextStyle(color: ColorsManager.whiteText, fontSize: 12),
       decoration: InputDecoration(
         fillColor: Colors.transparent,
         filled: true,
         hintText: widget.hintText,
-        hintStyle: TextStyle(color: ColorsManager.textWhite),
+        hintStyle: TextStyle(color: ColorsManager.whiteText),
         suffixIcon: widget.isPassword
             ? InkWell(
                 onTap: () {
@@ -54,21 +54,24 @@ class _CustomTextFieldState extends State<CustomTextField> {
             : null,
         prefixIcon: Icon(
           widget.icon,
-          color: ColorsManager.darkAccentCyan,
+          color: ColorsManager.cyan,
         ), // Matching your teal accent
         enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.5)),
+          borderSide: BorderSide(color: ColorsManager.grey.withOpacity(0.5)),
         ),
         focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: ColorsManager.darkAccentCyan, width: 2),
+          borderSide: BorderSide(color: ColorsManager.cyan, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: ColorsManager.rederror),
+          borderSide: const BorderSide(color: ColorsManager.redaccent),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: ColorsManager.rederror, width: 2),
+          borderSide: const BorderSide(
+            color: ColorsManager.redaccent,
+            width: 2,
+          ),
         ),
       ),
     );
