@@ -89,10 +89,12 @@ class SignupScreen extends StatelessWidget {
                             labelText: 'الاسم الكامل',
                             hintText: 'أدخل اسمك ',
                             validator: (value) {
-                              if (value == null || value.isEmpty)
+                              if (value == null || value.isEmpty) {
                                 return "الاسم مطلوب";
-                              if (!_nameRegex.hasMatch(value))
+                              }
+                              if (!_nameRegex.hasMatch(value)) {
                                 return "الاسم يجب أن يحتوي على حروف فقط";
+                              }
                               return null;
                             },
                           ),
@@ -119,10 +121,12 @@ class SignupScreen extends StatelessWidget {
                             labelText: 'البريد الإلكتروني',
                             hintText: 'example@univ-aleppo.com',
                             validator: (value) {
-                              if (value == null || value.isEmpty)
+                              if (value == null || value.isEmpty) {
                                 return "البريد الإلكتروني مطلوب";
-                              if (!_emailRegex.hasMatch(value))
+                              }
+                              if (!_emailRegex.hasMatch(value)) {
                                 return "البريد غير صحيح";
+                              }
                               return null;
                             },
                           ),
@@ -135,10 +139,12 @@ class SignupScreen extends StatelessWidget {
                             labelText: 'كلمة المرور',
                             hintText: '********',
                             validator: (value) {
-                              if (value == null || value.isEmpty)
+                              if (value == null || value.isEmpty) {
                                 return "كلمة المرور مطلوبة";
-                              if (value.length < 8)
+                              }
+                              if (value.length < 8) {
                                 return "يجب أن تكون 8 محارف على الأقل";
+                              }
                               return null;
                             },
                           ),
@@ -154,7 +160,7 @@ class SignupScreen extends StatelessWidget {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const HomeScreen(),
+                                    builder: (context) => HomeScreen(),
                                   ),
                                 );
                               } else if (state is AuthFailed) {

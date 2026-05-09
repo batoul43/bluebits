@@ -1,6 +1,5 @@
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
-import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/custombutton.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/customtextfield.dart';
 import 'package:flutter/material.dart';
@@ -100,10 +99,12 @@ class ForgetPassword extends StatelessWidget {
                             labelText: 'البريد الإلكتروني',
                             hintText: 'example@univ-aleppo.com',
                             validator: (value) {
-                              if (value == null || value.isEmpty)
+                              if (value == null || value.isEmpty) {
                                 return "البريد الإلكتروني مطلوب";
-                              if (!_emailRegex.hasMatch(value))
+                              }
+                              if (!_emailRegex.hasMatch(value)) {
                                 return "صيغة البريد غير صحيحة";
+                              }
                               return null;
                             },
                           ),

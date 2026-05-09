@@ -30,6 +30,7 @@ class AuthRepo {
       final loginDataResult = await authApi.login(logindata);
       return UserModel.fromJson(loginDataResult);
     } catch (e) {
+      print(e.toString());
       return null;
     }
   }

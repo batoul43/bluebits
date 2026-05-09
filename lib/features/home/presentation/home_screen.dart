@@ -1,14 +1,13 @@
 import 'package:bluebits_app/core/theming/colors.dart';
+import 'package:bluebits_app/features/home/presentation/widget/section_title_widget.dart';
+import 'package:bluebits_app/features/home/presentation/widget/state_card_widget.dart';
+import 'package:bluebits_app/features/home/presentation/widget/update_item_widget.dart';
+import 'package:bluebits_app/features/home/presentation/widget/wellcom_widget.dart';
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatelessWidget {
+  HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
   int _selectedDrawerIndex = 0;
 
   @override
@@ -18,7 +17,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // تعريف متغيرات الثيم لتسهيل الاستخدام
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -38,67 +36,80 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildWelcomeBanner(screenWidth, screenHeight),
+                WellcomWidget(
+                  screenWidth,
+                  screenHeight,
+                  height: screenHeight * 0.3,
+                  width: screenWidth * 0.9,
+                ),
                 SizedBox(height: screenHeight * 0.03),
 
-                _buildSectionTitle("إحصائياتك اليومية", screenWidth, context),
+                SectionTitleWidget(
+                  title: "إحصائياتك اليومية",
+                  width: screenWidth,
+                  context: context,
+                ),
                 SizedBox(height: screenHeight * 0.015),
 
                 // ملاحظة: الألوان الفرعية مثل الأخضر والبرتقالي تبقى ثابتة للتميز
-                _buildStatCard(
-                  "محاضرات متوفرة",
-                  "+150",
-                  Icons.insert_drive_file_outlined,
-                  ColorsManager.blue,
-                  screenWidth,
-                  context,
+                StateCardWidget(
+                  title: "محاضرات متوفرة",
+                  value: "+150",
+                  icon: Icons.insert_drive_file_outlined,
+                  color: ColorsManager.blue,
+                  width: screenWidth,
+                  context: context,
                 ),
-                _buildStatCard(
-                  "مهام منجزة",
-                  "1",
-                  Icons.check_circle_outline,
-                  ColorsManager.green,
-                  screenWidth,
-                  context,
+                StateCardWidget(
+                  title: "مهام منجزة",
+                  value: "1",
+                  icon: Icons.check_circle_outline,
+                  color: ColorsManager.green,
+                  width: screenWidth,
+                  context: context,
                 ),
-                _buildStatCard(
-                  "أيام للامتحان",
-                  "28",
-                  Icons.calendar_today_outlined,
-                  ColorsManager.purple,
-                  screenWidth,
-                  context,
+                StateCardWidget(
+                  title: "أيام للامتحان",
+                  value: "28",
+                  icon: Icons.calendar_today_outlined,
+                  color: ColorsManager.purple,
+                  width: screenWidth,
+                  context: context,
                 ),
-                _buildStatCard(
-                  "معدل الإنجاز",
-                  "50%",
-                  Icons.trending_up,
-                  ColorsManager.orange,
-                  screenWidth,
-                  context,
+                StateCardWidget(
+                  title: 'معدل الإنجاز',
+                  value: '50%',
+                  icon: Icons.trending_up,
+                  color: ColorsManager.orange,
+                  width: screenWidth,
+                  context: context,
                 ),
 
                 SizedBox(height: screenHeight * 0.03),
 
-                _buildSectionTitle("آخر التحديثات", screenWidth, context),
+                SectionTitleWidget(
+                  title: "آخر التحديثات",
+                  width: screenWidth,
+                  context: context,
+                ),
                 SizedBox(height: screenHeight * 0.015),
-                _buildUpdateItem(
-                  "تمت إضافة بنك أسئلة مادة \"الذكاء الاصطناعي\".",
-                  ColorsManager.blue,
-                  screenWidth,
-                  context,
+                UpdateItemWidget(
+                  text: "تمت إضافة بنك أسئلة مادة \"الذكاء الاصطناعي\".",
+                  sideColor: ColorsManager.blue,
+                  width: screenWidth,
+                  context: context,
                 ),
-                _buildUpdateItem(
-                  "رفع محاضرات الأسبوع الخامس لمواد السنة الثالثة.",
-                  ColorsManager.purple,
-                  screenWidth,
-                  context,
+                UpdateItemWidget(
+                  text: "رفع محاضرات الأسبوع الخامس لمواد السنة الثالثة.",
+                  sideColor: ColorsManager.purple,
+                  width: screenWidth,
+                  context: context,
                 ),
-                _buildUpdateItem(
-                  "تحديث نظام الـ Todo ليدعم تتبع المحاضرات بدقة.",
-                  ColorsManager.purpleAccent,
-                  screenWidth,
-                  context,
+                UpdateItemWidget(
+                  text: "تحديث نظام الـ Todo ليدعم تتبع المحاضرات بدقة.",
+                  sideColor: ColorsManager.orange,
+                  width: screenWidth,
+                  context: context,
                 ),
 
                 SizedBox(height: screenHeight * 0.03),
@@ -203,29 +214,37 @@ class _HomeScreenState extends State<HomeScreen> {
     final bool isSelected = _selectedDrawerIndex == index;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: isSelected ? colorScheme.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected ? colorScheme.onPrimary : ColorsManager.blueGrey,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return StatefulBuilder(
+      builder: (context, setStateDrowerTile) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isSelected ? colorScheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(15),
           ),
-        ),
-        onTap: () {
-          setState(() => _selectedDrawerIndex = index);
-          Navigator.pop(context);
-        },
-      ),
+          child: ListTile(
+            leading: Icon(
+              icon,
+              color: isSelected
+                  ? colorScheme.onPrimary
+                  : ColorsManager.blueGrey,
+            ),
+            title: Text(
+              title,
+              style: TextStyle(
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            onTap: () {
+              setStateDrowerTile(() => _selectedDrawerIndex = index);
+              Navigator.pop(context);
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -255,107 +274,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWelcomeBanner(double width, double height) {
-    return Container(
-      width: width,
-      padding: EdgeInsets.all(width * 0.06),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: ColorsManager.welcomeCardGradient,
-          begin: Alignment.centerRight,
-          end: Alignment.centerLeft,
-        ),
-        borderRadius: BorderRadius.circular(width * 0.06),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "أهلاً بك في منصة\nBlue Bits",
-            style: TextStyle(
-              color: ColorsManager.white,
-              fontSize: width * 0.07,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.white,
-              foregroundColor: ColorsManager.blue,
-            ),
-            child: const Text("ابدأ الدراسة"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-    double width,
-    BuildContext context,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.bodyMedium),
-              Text(
-                value,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: width * 0.06,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(icon, color: color, size: width * 0.07),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUpdateItem(
-    String text,
-    Color sideColor,
-    double width,
-    BuildContext context,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(15),
-        border: Border(right: BorderSide(color: sideColor, width: 4)),
-      ),
-      child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
-    );
-  }
-
   Widget _buildGamificationCard(double width, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
@@ -382,20 +300,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, double width, BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          Icons.dashboard_customize_outlined,
-          color: Theme.of(context).colorScheme.secondary,
-          size: width * 0.05,
-        ),
-        const SizedBox(width: 8),
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-      ],
     );
   }
 

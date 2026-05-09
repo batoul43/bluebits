@@ -42,7 +42,7 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthLoading());
       final logindataresult = await authrepo.login(logindata);
       print('------------------------------------------');
-      print(logindataresult?.token);
+      print(logindataresult);
 
       print('------------------------------------------');
       if (logindataresult != null) {

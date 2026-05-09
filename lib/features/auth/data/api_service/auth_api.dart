@@ -43,7 +43,7 @@ class AuthApi {
         return null;
       }
     } catch (e) {
-      throw Exception(e.toString());
+      print(e.toString());
     }
   }
 
