@@ -65,7 +65,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<ForgetPassword?> forgetpassword(String email) async {
+  Future<Password?> forgetpassword(String email) async {
     try {
       emit(AuthLoading());
       final forgetpasswordresult = await authrepo.forgetpassword(email);
@@ -73,14 +73,37 @@ class AuthCubit extends Cubit<AuthState> {
       print(forgetpasswordresult?.message);
 
       print('------------------------------------------');
-      if (forgetpasswordresult != null) {
+      if (forgetpasswordresult!.data != null) {
         emit(AuthForgetPassword(message: forgetpasswordresult.message));
         return forgetpasswordresult;
       } else {
         emit(
+          AuthFailed(message: ' ${forgetpasswordresult.message.toString()}'),
+        );
+        return null;
+      }
+    } catch (e) {
+      emit(AuthFailed(message: e.toString()));
+      return null;
+    }
+  }
+
+  Future<Password?> resetpassword(String password, String token) async {
+    try {
+      emit(AuthLoading());
+      final resetpasswordresult = await authrepo.resetpassword(password, token);
+      print('------------------------------------------');
+      print(resetpasswordresult?.message);
+
+      print('------------------------------------------');
+      if (resetpasswordresult != null && resetpasswordresult.data != null) {
+        emit(AuthResetPassword(message: resetpasswordresult.message));
+        return resetpasswordresult;
+      } else {
+        emit(
           AuthFailed(
             message:
-                'Forget password returned no data ${forgetpasswordresult.toString()}',
+                'Reset password returned no data ${resetpasswordresult!.message.toString()}',
           ),
         );
         return null;

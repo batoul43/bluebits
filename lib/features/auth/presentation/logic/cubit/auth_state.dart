@@ -22,6 +22,12 @@ class AuthForgetPassword extends AuthState {
   AuthForgetPassword({required this.message});
 }
 
+class AuthResetPassword extends AuthState {
+  final String message;
+
+  AuthResetPassword({required this.message});
+}
+
 class AuthFailed extends AuthState {
   final String message;
 

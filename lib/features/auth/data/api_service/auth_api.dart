@@ -60,7 +60,27 @@ class AuthApi {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        return null;
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<dynamic> ResetPassword(String password, String token) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${baseUrl}resetPassword/$token'),
+        headers: {'Content-type': 'application/json'},
+        body: jsonEncode({'password': password}),
+      );
+      print('------------------------------------------');
+      print(response.body);
+      print('------------------------------------------');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return jsonDecode(response.body);
       }
     } catch (e) {
       return null;

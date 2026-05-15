@@ -1,10 +1,10 @@
-class ForgetPassword {
+class Password {
   final String message;
   final dynamic data;
 
-  ForgetPassword({required this.message, required this.data});
-  factory ForgetPassword.fromjson(Map json) {
-    return ForgetPassword(message: json['message'], data: json['data']);
+  Password({required this.message, required this.data});
+  factory Password.fromjson(Map json) {
+    return Password(message: json['message'], data: json['data']);
   }
   Map tojson() {
     return {'message': message, 'data': data};

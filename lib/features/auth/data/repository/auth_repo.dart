@@ -35,10 +35,22 @@ class AuthRepo {
     }
   }
 
-  Future<ForgetPassword?> forgetpassword(String email) async {
+  Future<Password?> forgetpassword(String email) async {
     try {
-      final forgetpassword = await authApi.ForgetPassword(email);
-      return ForgetPassword.fromjson(forgetpassword);
+      final forgetpasswordresult = await authApi.ForgetPassword(email);
+      print('------------------------------------------');
+      print(forgetpasswordresult);
+      print('------------------------------------------');
+      return Password.fromjson(forgetpasswordresult);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Password?> resetpassword(String password, String token) async {
+    try {
+      final resetpasswordresult = await authApi.ResetPassword(password, token);
+      return Password.fromjson(resetpasswordresult);
     } catch (e) {
       return null;
     }

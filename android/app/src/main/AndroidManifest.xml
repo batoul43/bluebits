@@ -28,19 +28,21 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <intent-filter android:autoVerify="true">
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
+           <intent-filter android:autoVerify="true">
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
 
-        <data android:scheme="https" 
-              android:host="bluebits.app" 
-              android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
-              
-        <data android:scheme="http" 
-              android:host="bluebits.app" 
-              android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
-    </intent-filter>
+    <!-- تعديل الـ host ليتطابق مع رابط Render الخاص بكِ -->
+    <data android:scheme="http" 
+          android:host="bluebits24.onrender.com" 
+          android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
+          
+    <!-- نصيحة: Render يدعم https دائماً، يفضل إضافة هذا السطر أيضاً -->
+    <data android:scheme="https" 
+          android:host="bluebits24.onrender.com" 
+          android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
+</intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

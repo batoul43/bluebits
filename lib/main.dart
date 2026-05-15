@@ -1,11 +1,16 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:bluebits_app/core/constant/constant.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/core/theming/app_theme.dart';
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
 import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
+import 'package:bluebits_app/features/auth/presentation/screens/reset_password.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
+import 'package:bluebits_app/features/layout/layout_app.dart';
 import 'package:bluebits_app/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,8 +30,53 @@ Future<void> main() async {
   );
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  late AppLinks _applinks;
+  StreamSubscription<Uri>? _linkSubscription;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
+  void initDeepLinks() {
+    _applinks = AppLinks();
+    _linkSubscription = _applinks.uriLinkStream.listen((Uri) {
+      _handleDeepLink(Uri);
+    });
+    _applinks.getInitialLink().then((Uri) {
+      if (Uri != null) {
+        _handleDeepLink(Uri);
+      }
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    if (uri.pathSegments.contains('reset-password')) {
+      final token = uri.pathSegments.last;
+      if (token != null) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => ResetPassword(resetToken: token),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,13 +97,18 @@ class MainApp extends StatelessWidget {
           if (!isopen) {
             return OnboardingScreen();
           } else if (state is Authenticated) {
-            return HomeScreen();
+            return LayoutApp();
           } else if (state is Unauthenticated) {
             return SigninScreen();
           } else if (state is AuthFailed) {
             return Scaffold(
               body: Center(
-                child: Text('Authentication failed. Please try again.'),
+                child: TextButton(
+                  onPressed: () {
+                    context.read<AuthCubit>().checkAuthStatus();
+                  },
+                  child: Text('Authentication failed. Please try again.'),
+                ),
               ),
             );
           } else {
