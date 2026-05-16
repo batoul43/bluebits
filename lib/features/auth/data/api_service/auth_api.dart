@@ -109,4 +109,26 @@ class AuthApi {
       return null;
     }
   }
+
+  Future<dynamic> logout(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${baseUrl}logout'),
+        headers: {
+          'Content-type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      print('------------------------------------------');
+      print(response.body);
+      print('------------------------------------------');
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
 }

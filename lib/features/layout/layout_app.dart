@@ -1,32 +1,34 @@
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
 import 'package:bluebits_app/core/widget/custom_app_bar.dart';
+import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
+import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
+import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
+import 'package:bluebits_app/features/question_banks/presentation/screens/question_banks_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class LayoutApp extends StatefulWidget {
+class LayoutApp extends StatelessWidget {
   LayoutApp({super.key});
 
-  @override
-  State<LayoutApp> createState() => _LayoutAppState();
-}
-
-class _LayoutAppState extends State<LayoutApp> {
-  int _selectedDrawerIndex = 0;
+  final ValueNotifier<int> _selectedDrawerIndex = ValueNotifier(0);
 
   final List<Widget> _pages = [
     HomeScreen(),
     LecturesScreen(),
+    BlocProvider(
+      create: (context) => BankCubit()..backTOYear(),
+      child: QuestionBanksScreen(),
+    ),
     // أضيفي باقي الصفحات هنا
   ];
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
 
     // تعريف متغيرات الثيم لتسهيل الاستخدام
     final theme = Theme.of(context);
@@ -38,7 +40,12 @@ class _LayoutAppState extends State<LayoutApp> {
       body: SafeArea(
         child: BlocProvider(
           create: (context) => LecturesCubit()..backTOYear(),
-          child: IndexedStack(index: _selectedDrawerIndex, children: _pages),
+          child: ValueListenableBuilder(
+            valueListenable: _selectedDrawerIndex,
+            builder: (context, selectedDrawerIndex, child) {
+              return IndexedStack(index: selectedDrawerIndex, children: _pages);
+            },
+          ),
         ),
       ),
     );
@@ -51,11 +58,12 @@ class _LayoutAppState extends State<LayoutApp> {
     double width,
     BuildContext context,
   ) {
-    final bool isSelected = _selectedDrawerIndex == index;
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return StatefulBuilder(
       builder: (context, setStateDrowerTile) {
+        bool isSelected = _selectedDrawerIndex.value == index;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
@@ -67,7 +75,7 @@ class _LayoutAppState extends State<LayoutApp> {
               icon,
               color: isSelected
                   ? colorScheme.onPrimary
-                  : ColorsManager.blueGrey,
+                  : colorScheme.onSurface.withOpacity(0.7),
             ),
             title: Text(
               title,
@@ -79,8 +87,9 @@ class _LayoutAppState extends State<LayoutApp> {
               ),
             ),
             onTap: () {
-              setState(() => _selectedDrawerIndex = index);
-
+              setStateDrowerTile(() {
+                _selectedDrawerIndex.value = index;
+              });
               Navigator.pop(context);
             },
           ),
@@ -90,7 +99,9 @@ class _LayoutAppState extends State<LayoutApp> {
   }
 
   Widget _buildSideDrawer(double width, BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Drawer(
       width: width * 0.75,
       backgroundColor: colorScheme.surface, // يتغير حسب الثيم
@@ -108,15 +119,15 @@ class _LayoutAppState extends State<LayoutApp> {
             ),
             accountName: Text(
               "بتول كبة",
-              style: TextStyle(
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: width * 0.045,
               ),
             ),
             accountEmail: Text(
               "Informatics Engineering",
-              style: TextStyle(color: ColorsManager.greyText),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: ColorsManager.greyText,
+              ),
             ),
           ),
           Expanded(
@@ -156,12 +167,41 @@ class _LayoutAppState extends State<LayoutApp> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.logout, color: ColorsManager.redaccent),
-            title: const Text(
-              "تسجيل الخروج",
-              style: TextStyle(color: ColorsManager.redaccent),
+            leading: Icon(Icons.logout, color: colorScheme.error),
+            title: BlocListener<AuthCubit, AuthState>(
+              listener: (context, state) {
+                if (state is AuthLoading) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) {
+                      return AlertDialog(
+                        content: Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                  );
+                } else if (state is AuthLogoutSuccess) {
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => SigninScreen()),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('تم تسجيل الخروج بنجاح')),
+                  );
+                }
+              },
+              child: Text(
+                "تسجيل الخروج",
+                style: TextStyle(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            onTap: () {},
+            onTap: () {
+              context.read<AuthCubit>().logout();
+            },
           ),
           const SizedBox(height: 20),
         ],

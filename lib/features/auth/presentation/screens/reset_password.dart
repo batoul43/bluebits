@@ -1,5 +1,4 @@
 import 'package:bluebits_app/core/theming/colors.dart';
-import 'package:bluebits_app/features/auth/data/models/forget_password.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/custombutton.dart';

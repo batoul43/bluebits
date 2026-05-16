@@ -74,4 +74,14 @@ class AuthRepo {
       return 'errorUnauthenticated';
     }
   }
+
+  Future<dynamic> logout(String token) async {
+    try {
+      final logout = await authApi.logout(token);
+      return logout;
+    } catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
 }

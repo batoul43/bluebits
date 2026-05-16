@@ -137,4 +137,20 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthFailed(message: e.toString()));
     }
   }
+
+  Future<void> logout() async {
+    try {
+      emit(AuthLoading());
+      final token = await CachHelper.getValue('Token');
+      final logout = await authrepo.logout(token);
+      if (logout != null) {
+        await CachHelper.removeValue('Token');
+        emit(AuthLogoutSuccess());
+      } else {
+        emit(AuthFailed(message: 'Logout failed'));
+      }
+    } catch (e) {
+      emit(AuthFailed(message: e.toString()));
+    }
+  }
 }

@@ -12,6 +12,16 @@ class LecturesCubit extends Cubit<LecturesState> {
 
   void displaySemesters(String year) {
     emit(LecturesInitial());
-    emit(DisplaySemesters(year));
+    emit(DisplaySemesters(selectedYear: year));
+  }
+
+  void displaySubjects(String year, String subject) {
+    emit(LecturesInitial());
+    emit(DisplaySubjects(selectedYear: year, selectedSubject: subject));
+  }
+
+  void backToSemesters(String year) {
+    emit(LecturesInitial());
+    emit(DisplaySemesters(selectedYear: year));
   }
 }

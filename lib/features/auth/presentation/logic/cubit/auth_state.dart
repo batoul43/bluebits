@@ -28,6 +28,8 @@ class AuthResetPassword extends AuthState {
   AuthResetPassword({required this.message});
 }
 
+class AuthLogoutSuccess extends AuthState {}
+
 class AuthFailed extends AuthState {
   final String message;
 

@@ -14,6 +14,8 @@ class WellcomWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Container(
       width: width,
       padding: EdgeInsets.all(width * 0.06),
@@ -29,18 +31,19 @@ class WellcomWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "أهلاً بك في منصة\nBlue Bits",
-            style: TextStyle(
+            "أهلاً بك في منصة Blue Bits",
+            style: theme.textTheme.displayLarge?.copyWith(
+              // هنا نستخدم لون ثابت (White) فقط إذا كان الجرادينت دائماً غامق
+              // أو نستخدم onPrimary ليكون متوافقاً مع الثيم
               color: ColorsManager.white,
-              fontSize: width * 0.07,
-              fontWeight: FontWeight.bold,
+              fontSize: width * 0.07, // نحافظ على التجاوب مع الحجم
             ),
           ),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () {},
             style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.white,
+              backgroundColor: ColorsManager.white.withOpacity(0.95),
               foregroundColor: ColorsManager.blue,
             ),
             child: const Text("ابدأ الدراسة"),

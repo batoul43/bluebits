@@ -9,7 +9,6 @@ import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/reset_password.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
-import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/layout/layout_app.dart';
 import 'package:bluebits_app/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:flutter/material.dart';
@@ -62,13 +61,11 @@ class _MainAppState extends State<MainApp> {
   void _handleDeepLink(Uri uri) {
     if (uri.pathSegments.contains('reset-password')) {
       final token = uri.pathSegments.last;
-      if (token != null) {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (context) => ResetPassword(resetToken: token),
-          ),
-        );
-      }
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => ResetPassword(resetToken: token),
+        ),
+      );
     }
   }
 

@@ -1,23 +1,17 @@
 import 'package:bluebits_app/core/theming/colors.dart';
-import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
-import 'package:bluebits_app/core/widget/custom_app_bar.dart';
 import 'package:bluebits_app/features/home/presentation/widget/section_title_widget.dart';
 import 'package:bluebits_app/features/home/presentation/widget/state_card_widget.dart';
 import 'package:bluebits_app/features/home/presentation/widget/update_item_widget.dart';
 import 'package:bluebits_app/features/home/presentation/widget/wellcom_widget.dart';
-import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
-
-    // تعريف متغيرات الثيم لتسهيل الاستخدام
-    final theme = Theme.of(context);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -126,172 +120,6 @@ class HomeScreen extends StatelessWidget {
     // );
   }
 
-  // // بناء القائمة الجانبية مع ألوان ديناميكية
-  // Widget _buildSideDrawer(double width, BuildContext context) {
-  //   final colorScheme = Theme.of(context).colorScheme;
-  //   return Drawer(
-  //     width: width * 0.75,
-  //     backgroundColor: colorScheme.surface, // يتغير حسب الثيم
-  //     child: Column(
-  //       children: [
-  //         UserAccountsDrawerHeader(
-  //           decoration: BoxDecoration(color: colorScheme.surface),
-  //           currentAccountPicture: CircleAvatar(
-  //             backgroundColor: colorScheme.primary.withOpacity(0.1),
-  //             child: Icon(
-  //               Icons.person,
-  //               size: width * 0.1,
-  //               color: colorScheme.primary,
-  //             ),
-  //           ),
-  //           accountName: Text(
-  //             "بتول كبة",
-  //             style: TextStyle(
-  //               color: colorScheme.onSurface,
-  //               fontWeight: FontWeight.bold,
-  //               fontSize: width * 0.045,
-  //             ),
-  //           ),
-  //           accountEmail: Text(
-  //             "Informatics Engineering",
-  //             style: TextStyle(color: ColorsManager.greyText),
-  //           ),
-  //         ),
-  //         Expanded(
-  //           child: ListView(
-  //             padding: EdgeInsets.zero,
-  //             children: [
-  //               _buildDrawerTile(
-  //                 0,
-  //                 Icons.home_outlined,
-  //                 "الرئيسية",
-  //                 width,
-  //                 context,
-  //               ),
-  //               _buildDrawerTile(
-  //                 1,
-  //                 Icons.book_outlined,
-  //                 "المحاضرات",
-  //                 width,
-  //                 context,
-  //               ),
-  //               _buildDrawerTile(
-  //                 2,
-  //                 Icons.quiz_outlined,
-  //                 "بنوك الأسئلة",
-  //                 width,
-  //                 context,
-  //               ),
-  //               _buildDrawerTile(
-  //                 3,
-  //                 Icons.task_alt,
-  //                 "قائمة المهام",
-  //                 width,
-  //                 context,
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         const Divider(),
-  //         ListTile(
-  //           leading: const Icon(Icons.logout, color: ColorsManager.redaccent),
-  //           title: const Text(
-  //             "تسجيل الخروج",
-  //             style: TextStyle(color: ColorsManager.redaccent),
-  //           ),
-  //           onTap: () {},
-  //         ),
-  //         const SizedBox(height: 20),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildDrawerTile(
-  //   int index,
-  //   IconData icon,
-  //   String title,
-  //   double width,
-  //   BuildContext context,
-  // ) {
-  //   final bool isSelected = _selectedDrawerIndex == index;
-  //   final colorScheme = Theme.of(context).colorScheme;
-
-  //   return StatefulBuilder(
-  //     builder: (context, setStateDrowerTile) {
-  //       return Container(
-  //         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-  //         decoration: BoxDecoration(
-  //           color: isSelected ? colorScheme.primary : Colors.transparent,
-  //           borderRadius: BorderRadius.circular(15),
-  //         ),
-  //         child: ListTile(
-  //           leading: Icon(
-  //             icon,
-  //             color: isSelected
-  //                 ? colorScheme.onPrimary
-  //                 : ColorsManager.blueGrey,
-  //           ),
-  //           title: Text(
-  //             title,
-  //             style: TextStyle(
-  //               color: isSelected
-  //                   ? colorScheme.onPrimary
-  //                   : colorScheme.onSurface,
-  //               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-  //             ),
-  //           ),
-  //           onTap: () {
-  //             setStateDrowerTile(() => _selectedDrawerIndex = index);
-  //             Navigator.pop(context);
-  //             Navigator.push(
-  //               context,
-  //               MaterialPageRoute(
-  //                 builder: (context) {
-  //                   // هنا يمكنك توجيه المستخدم إلى الشاشة المناسبة بناءً على index
-  //                   switch (index) {
-  //                     case 0:
-  //                       return HomeScreen(); // أو أي شاشة رئيسية أخرى
-  //                     case 1:
-  //                       return LecturesScreen();
-  //                   }
-  //                   return HomeScreen();
-  //                 },
-  //               ),
-  //             );
-  //           },
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
-  // PreferredSizeWidget _buildCustomAppBar(double width, BuildContext context) {
-  //   final colorScheme = Theme.of(context).colorScheme;
-  //   return AppBar(
-  //     backgroundColor: colorScheme.surface,
-  //     title: Row(
-  //       mainAxisAlignment: MainAxisAlignment.end,
-  //       children: [
-  //         Text("Blue Bits", style: Theme.of(context).textTheme.titleMedium),
-  //         const SizedBox(width: 8),
-  //         Container(
-  //           padding: const EdgeInsets.all(6),
-  //           decoration: BoxDecoration(
-  //             color: colorScheme.primary,
-  //             borderRadius: BorderRadius.circular(10),
-  //           ),
-  //           child: Icon(
-  //             Icons.psychology,
-  //             color: colorScheme.onPrimary,
-  //             size: width * 0.06,
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildGamificationCard(double width, BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
@@ -320,11 +148,4 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  // Widget _buildChatBotButton(double width, BuildContext context) {
-  //   return FloatingActionButton(
-  //     onPressed: () {},
-  //     child: const Icon(Icons.smart_toy_outlined),
-  //   );
-  // }
 }
