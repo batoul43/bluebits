@@ -2,9 +2,9 @@
 class UserData {
   final String email;
   final String password;
-  final String name;
+  final String? name;
 
-  UserData({required this.email, required this.password, required this.name});
+  UserData({required this.email, required this.password, this.name});
   factory UserData.fromJson(Map json) {
     return UserData(
       email: json['email'],
@@ -12,7 +12,7 @@ class UserData {
       name: json['name'],
     );
   }
-  Map<String, String> toJson() {
+  Map<String, dynamic> toJson() {
     return {'email': email, 'password': password, 'name': name};
   }
 }

@@ -1,6 +1,7 @@
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
 import 'package:bluebits_app/core/widget/custom_app_bar.dart';
+import 'package:bluebits_app/features/admin_control_panel_screen/presentation/screens/admin_control_panel_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
@@ -8,21 +9,36 @@ import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures
 import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
 import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
 import 'package:bluebits_app/features/question_banks/presentation/screens/question_banks_screen.dart';
+import 'package:bluebits_app/features/tasks/presentation/logic/cubit/acadimmictask_cubit.dart';
+import 'package:bluebits_app/features/tasks/presentation/logic/cubit/task_cubit.dart';
+import 'package:bluebits_app/features/tasks/presentation/screens/task_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LayoutApp extends StatelessWidget {
-  LayoutApp({super.key});
+  final ValueNotifier<int> _selectedDrawerIndex;
 
-  final ValueNotifier<int> _selectedDrawerIndex = ValueNotifier(0);
+  LayoutApp({super.key, required ValueNotifier<int> selectedDrawerIndex})
+    : _selectedDrawerIndex = selectedDrawerIndex;
 
   final List<Widget> _pages = [
     HomeScreen(),
-    LecturesScreen(),
+    BlocProvider(
+      create: (context) => LecturesCubit()..backTOYear(),
+      child: LecturesScreen(),
+    ),
     BlocProvider(
       create: (context) => BankCubit()..backTOYear(),
       child: QuestionBanksScreen(),
     ),
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => TaskCubit()..loadTasks()),
+        BlocProvider(create: (context) => AcadimmictaskCubit()..backTOYear()),
+      ],
+      child: TasksScreen(),
+    ),
+    AdminControlPanelScreen(),
     // أضيفي باقي الصفحات هنا
   ];
 
@@ -38,14 +54,11 @@ class LayoutApp extends StatelessWidget {
       appBar: CustomAppBar(),
       floatingActionButton: ChatBotFab(),
       body: SafeArea(
-        child: BlocProvider(
-          create: (context) => LecturesCubit()..backTOYear(),
-          child: ValueListenableBuilder(
-            valueListenable: _selectedDrawerIndex,
-            builder: (context, selectedDrawerIndex, child) {
-              return IndexedStack(index: selectedDrawerIndex, children: _pages);
-            },
-          ),
+        child: ValueListenableBuilder(
+          valueListenable: _selectedDrawerIndex,
+          builder: (context, selectedDrawerIndex, child) {
+            return IndexedStack(index: selectedDrawerIndex, children: _pages);
+          },
         ),
       ),
     );
@@ -162,6 +175,13 @@ class LayoutApp extends StatelessWidget {
                   width,
                   context,
                 ),
+                _buildDrawerTile(
+                  4,
+                  Icons.admin_panel_settings,
+                  "لوحة التحكم",
+                  width,
+                  context,
+                ),
               ],
             ),
           ),
@@ -175,8 +195,8 @@ class LayoutApp extends StatelessWidget {
                     context: context,
                     barrierDismissible: false,
                     builder: (context) {
-                      return AlertDialog(
-                        content: Center(child: CircularProgressIndicator()),
+                      return Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
                       );
                     },
                   );

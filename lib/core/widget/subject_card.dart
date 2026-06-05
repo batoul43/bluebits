@@ -5,13 +5,15 @@ class SubjectCard extends StatelessWidget {
   final String title;
   final String year;
   final VoidCallback onTap;
-  final bool? isbank;
+  final bool? isbankorTask;
+  final Icon? icon;
   const SubjectCard({
     super.key,
     required this.title,
     required this.onTap,
     required this.year,
-    this.isbank,
+    this.isbankorTask,
+    this.icon,
   });
 
   @override
@@ -65,12 +67,13 @@ class SubjectCard extends StatelessWidget {
                     fontSize: screenWidth * 0.045,
                   ),
                 ),
-                isbank == true
-                    ? Icon(
-                        Icons.help_outline_rounded,
-                        color: ColorsManager.orange,
-                        size: 22,
-                      )
+                isbankorTask == true
+                    ? icon ??
+                          Icon(
+                            Icons.help_outline_rounded,
+                            color: ColorsManager.orange,
+                            size: 22,
+                          )
                     : SizedBox(),
               ],
             ),

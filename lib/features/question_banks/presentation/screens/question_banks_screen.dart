@@ -1,5 +1,5 @@
 import 'package:bluebits_app/core/widget/subject_card.dart';
-import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
+import 'package:bluebits_app/core/widget/page_headers.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
 import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
 import 'package:bluebits_app/features/question_banks/presentation/widget/question_card.dart';
@@ -123,7 +123,7 @@ class QuestionBanksScreen extends StatelessWidget {
                                                 ),
                                               )
                                             : SubjectCard(
-                                                isbank: true,
+                                                isbankorTask: true,
                                                 onTap: () {
                                                   context
                                                       .read<BankCubit>()

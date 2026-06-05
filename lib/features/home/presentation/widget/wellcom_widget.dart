@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/theming/colors.dart';
+import 'package:bluebits_app/features/layout/layout_app.dart';
 import 'package:flutter/material.dart';
 
 class WellcomWidget extends StatelessWidget {
@@ -15,7 +16,6 @@ class WellcomWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return Container(
       width: width,
       padding: EdgeInsets.all(width * 0.06),
@@ -41,7 +41,14 @@ class WellcomWidget extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      LayoutApp(selectedDrawerIndex: ValueNotifier<int>(1)),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: ColorsManager.white.withOpacity(0.95),
               foregroundColor: ColorsManager.blue,

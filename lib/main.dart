@@ -94,7 +94,7 @@ class _MainAppState extends State<MainApp> {
           if (!isopen) {
             return OnboardingScreen();
           } else if (state is Authenticated) {
-            return LayoutApp();
+            return LayoutApp(selectedDrawerIndex: ValueNotifier<int>(0));
           } else if (state is Unauthenticated) {
             return SigninScreen();
           } else if (state is AuthFailed) {
@@ -109,7 +109,7 @@ class _MainAppState extends State<MainApp> {
               ),
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
           }
         },
       ),

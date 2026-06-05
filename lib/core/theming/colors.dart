@@ -25,6 +25,7 @@ class ColorsManager {
   static const Color purple = Colors.purple;
   static const Color purpleAccent = Colors.purpleAccent;
   static const Color blueGrey = Colors.blueGrey;
+  static Color pomodoroPurple = Color(0xFF6328FA);
 
   // --- التدرجات (Gradients) ---
   static const List<Color> backgroundGradient = [

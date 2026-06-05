@@ -17,18 +17,15 @@ class AuthCubit extends Cubit<AuthState> {
       print('------------------------------------------');
       print(signupdataresult);
       print('------------------------------------------');
-      if (signupdataresult != null) {
+      if (signupdataresult != null &&
+          (signupdataresult.statusCode == 200 ||
+              signupdataresult.statusCode == 201)) {
         await CachHelper.setValue('Token', signupdataresult.token);
         print('success');
         emit(AuthSuccess(signupresult: signupdataresult));
         return signupdataresult;
       } else {
-        emit(
-          AuthFailed(
-            message:
-                'Signup returned no user data ${signupdataresult.toString()}',
-          ),
-        );
+        emit(AuthFailed(message: ' ${signupdataresult!.message.toString()}'));
         return null;
       }
     } catch (e) {
@@ -45,18 +42,13 @@ class AuthCubit extends Cubit<AuthState> {
       print(logindataresult);
 
       print('------------------------------------------');
-      if (logindataresult != null) {
+      if (logindataresult != null && logindataresult.statusCode == 200) {
         await CachHelper.setValue('Token', logindataresult.token);
 
         emit(AuthSuccess(signupresult: logindataresult));
         return logindataresult;
       } else {
-        emit(
-          AuthFailed(
-            message:
-                'Login returned no user data ${logindataresult.toString()}',
-          ),
-        );
+        emit(AuthFailed(message: '${logindataresult?.message.toString()}'));
         return null;
       }
     } catch (e) {

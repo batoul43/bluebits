@@ -1,7 +1,7 @@
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/app_search_headers.dart';
-import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
+import 'package:bluebits_app/core/widget/page_headers.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/semester_card.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
 import 'package:flutter/material.dart';

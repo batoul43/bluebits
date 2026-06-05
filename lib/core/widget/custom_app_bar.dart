@@ -10,7 +10,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
 
     return AppBar(
       backgroundColor: colorScheme.surface,
@@ -32,15 +32,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 8),
           // شعار التطبيق (الدماغ)
           Container(
-            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: colorScheme.primary,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(
-              Icons.psychology,
-              color: colorScheme.onPrimary,
-              size: width * 0.06,
+            child: Transform.scale(
+              scale: 0.8,
+              child: Image.asset(
+                'assets/images/logo2.png',
+
+                width: size.width * 0.13,
+                color: colorScheme.onPrimary,
+              ),
             ),
           ),
         ],
