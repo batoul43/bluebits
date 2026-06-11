@@ -17,6 +17,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   flutter_svg: ^2.2.4
   http: ^1.6.0
+  image_picker: ^1.2.2
 
 
 dev_dependencies:

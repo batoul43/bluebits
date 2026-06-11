@@ -1,33 +1,95 @@
-import 'package:bloc/bloc.dart';
-import 'package:bluebits_app/core/helpers/cachhelper.dart';
+import 'dart:io';
 import 'package:bluebits_app/features/profile/data/models/profile_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bluebits_app/features/profile/data/repository/profile_repo.dart';
 
 part 'profile_state.dart';
 
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit({required this.repo}) : super(ProfileInitial());
   final ProfileRepo repo;
 
-  Future<ProfileModel?> loadProfile() async {
-    try {
-      emit(ProfileLoading());
-      final token = await CachHelper.getValue('Token');
-      if (token == null) {
-        emit(ProfileError(message: 'No token found'));
-        return null;
-      }
-      final profile = await repo.getProfile(token);
-      if (profile != null) {
-        emit(ProfileLoaded(profile: profile));
-        return profile;
-      } else {
-        emit(ProfileError(message: 'Failed to load profile'));
-        return null;
-      }
-    } catch (e) {
-      emit(ProfileError(message: e.toString()));
-      return null;
+  ProfileCubit({required this.repo}) : super(ProfileInitial());
+
+  /// 1. جلب بيانات البروفايل
+  Future<void> loadProfile(String token) async {
+    emit(ProfileLoading());
+    final response = await repo.getProfile(token);
+
+    if (response != null &&
+        response.isSuccess == true &&
+        response.data != null) {
+      emit(ProfileSuccess(response.data!));
+    } else {
+      emit(ProfileError(response?.message ?? "فشل جلب البيانات"));
+    }
+  }
+
+  /// 2. تحديث البيانات النصية
+  Future<void> updateProfile(Map<String, dynamic> data, String token) async {
+    emit(ProfileUpdateLoading());
+    final response = await repo.updateProfile(data, token);
+
+    if (response != null &&
+        response.isSuccess == true &&
+        response.data != null) {
+      emit(ProfileUpdateSuccess(response.data!));
+      // تحديث الحالة العامة للبيانات بعد التحديث بنجاح
+      emit(ProfileSuccess(response.data!));
+    } else {
+      emit(ProfileUpdateError(response?.message ?? "فشل تحديث البيانات"));
+    }
+  }
+
+  /// 3. تحديث ورفع الصورة
+  Future<void> uploadImage(File imageFile, String token) async {
+    emit(ProfileImageUploadLoading());
+    final response = await repo.uploadProfileImage(imageFile, token);
+
+    if (response != null &&
+        response.isSuccess == true &&
+        response.data != null) {
+      emit(ProfileImageUploadSuccess(response.data!));
+      // تحديث الشاشة فوراً بعد رفع الصورة
+      emit(ProfileSuccess(response.data!));
+    } else {
+      emit(ProfileImageUploadError(response?.message ?? "فشل رفع الصورة"));
+    }
+  }
+
+  Future<void> uploadProfileImage(File imageFile, String token) async {
+    // 1. إصدار حالة التحميل
+    emit(ProfileImageUploadLoading());
+
+    // 2. استدعاء الـ Repo
+    final response = await repo.uploadProfileImage(imageFile, token);
+
+    // 3. فحص النتيجة
+    if (response != null &&
+        response.isSuccess == true &&
+        response.data != null) {
+      // نجاح: تحديث الحالة
+      emit(ProfileImageUploadSuccess(response.data!));
+      // تحديث الشاشة بالبيانات الجديدة (الصورة الجديدة)
+      emit(ProfileSuccess(response.data!));
+    } else {
+      // فشل: إظهار رسالة الخطأ القادمة من السيرفر أو رسالة افتراضية
+      emit(
+        ProfileImageUploadError(
+          response?.message ?? "حدث خطأ أثناء رفع الصورة",
+        ),
+      );
+    }
+  }
+
+  /// 4. حذف الحساب
+  Future<void> deleteAccount(String token) async {
+    emit(ProfileDeleteLoading());
+    final response = await repo.deleteAccount(token);
+
+    if (response != null && response.isSuccess == true) {
+      emit(ProfileDeleteSuccess());
+    } else {
+      emit(ProfileDeleteError(response?.message ?? "فشل حذف الحساب"));
     }
   }
 }

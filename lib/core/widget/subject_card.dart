@@ -6,12 +6,14 @@ class SubjectCard extends StatelessWidget {
   final String year;
   final VoidCallback onTap;
   final bool? isbank;
+  final Icon? icon;
   const SubjectCard({
     super.key,
     required this.title,
     required this.onTap,
     required this.year,
     this.isbank,
+    this.icon,
   });
 
   @override

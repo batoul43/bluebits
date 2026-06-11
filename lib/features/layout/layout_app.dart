@@ -6,25 +6,73 @@ import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.da
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
+import 'package:bluebits_app/features/profile/data/api_service/profile_api.dart';
+import 'package:bluebits_app/features/profile/data/repository/profile_repo.dart';
+import 'package:bluebits_app/features/profile/presentation/logic/profile_cubit.dart';
+import 'package:bluebits_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
+import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/features/question_banks/presentation/screens/question_banks_screen.dart';
+import 'package:bluebits_app/features/tasks/presentation/logic/cubit/acadimmictask_cubit.dart';
+import 'package:bluebits_app/features/tasks/presentation/logic/cubit/task_cubit.dart';
+import 'package:bluebits_app/features/tasks/presentation/screens/task_secreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class LayoutApp extends StatelessWidget {
+class LayoutApp extends StatefulWidget {
   LayoutApp({super.key});
 
-  final ValueNotifier<int> _selectedDrawerIndex = ValueNotifier(0);
+  @override
+  State<LayoutApp> createState() => _LayoutAppState();
+}
 
-  final List<Widget> _pages = [
-    HomeScreen(),
-    LecturesScreen(),
-    BlocProvider(
-      create: (context) => BankCubit()..backTOYear(),
-      child: QuestionBanksScreen(),
-    ),
-    // أضيفي باقي الصفحات هنا
-  ];
+class _LayoutAppState extends State<LayoutApp> {
+  final ValueNotifier<int> _selectedDrawerIndex = ValueNotifier(0);
+  final ProfileCubit _profileCubit = ProfileCubit(
+    repo: ProfileRepo(profileApi: ProfileApi()),
+  );
+
+  late final List<Widget> _pages;
+
+  final String _profileImageBaseUrl = 'http://bluebits24.onrender.com/';
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomeScreen(),
+      LecturesScreen(),
+      BlocProvider(
+        create: (context) => BankCubit()..backTOYear(),
+        child: QuestionBanksScreen(),
+      ),
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (context) => TaskCubit()..loadTasks()),
+          BlocProvider(create: (context) => AcadimmictaskCubit()..backTOYear()),
+        ],
+        child: TasksScreen(),
+      ),
+      ProfileScreen(),
+      // أضيفي باقي الصفحات هنا
+    ];
+
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final token = await CachHelper.getValue('Token');
+    if (token != null) {
+      _profileCubit.loadProfile(token);
+    }
+  }
+
+  @override
+  void dispose() {
+    _selectedDrawerIndex.dispose();
+    _profileCubit.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +80,25 @@ class LayoutApp extends StatelessWidget {
 
     // تعريف متغيرات الثيم لتسهيل الاستخدام
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      drawer: _buildSideDrawer(screenWidth, context),
-      appBar: CustomAppBar(),
-      floatingActionButton: ChatBotFab(),
-      body: SafeArea(
-        child: BlocProvider(
-          create: (context) => LecturesCubit()..backTOYear(),
-          child: ValueListenableBuilder(
-            valueListenable: _selectedDrawerIndex,
-            builder: (context, selectedDrawerIndex, child) {
-              return IndexedStack(index: selectedDrawerIndex, children: _pages);
-            },
+    return BlocProvider.value(
+      value: _profileCubit,
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        drawer: _buildSideDrawer(screenWidth, context),
+        appBar: CustomAppBar(),
+        floatingActionButton: ChatBotFab(),
+        body: SafeArea(
+          child: BlocProvider(
+            create: (context) => LecturesCubit()..backTOYear(),
+            child: ValueListenableBuilder(
+              valueListenable: _selectedDrawerIndex,
+              builder: (context, selectedDrawerIndex, child) {
+                return IndexedStack(
+                  index: selectedDrawerIndex,
+                  children: _pages,
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -107,28 +161,43 @@ class LayoutApp extends StatelessWidget {
       backgroundColor: colorScheme.surface, // يتغير حسب الثيم
       child: Column(
         children: [
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(color: colorScheme.surface),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: colorScheme.primary.withOpacity(0.1),
-              child: Icon(
-                Icons.person,
-                size: width * 0.1,
-                color: colorScheme.primary,
-              ),
-            ),
-            accountName: Text(
-              "بتول كبة",
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurface,
-              ),
-            ),
-            accountEmail: Text(
-              "Informatics Engineering",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: ColorsManager.greyText,
-              ),
-            ),
+          BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              String accountName = "مستخدم";
+              String accountEmail = "غير متوفر";
+              ImageProvider avatar = AssetImage('assets/images/avatar.png');
+
+              if (state is ProfileSuccess) {
+                accountName = state.data.name ?? accountName;
+                accountEmail = state.data.email ?? accountEmail;
+                if (state.data.profileImage != null &&
+                    state.data.profileImage!.isNotEmpty) {
+                  avatar = NetworkImage(
+                    '$_profileImageBaseUrl${state.data.profileImage!}',
+                  );
+                }
+              }
+
+              return UserAccountsDrawerHeader(
+                decoration: BoxDecoration(color: colorScheme.surface),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: avatar,
+                ),
+                accountName: Text(
+                  accountName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                accountEmail: Text(
+                  accountEmail,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: ColorsManager.greyText,
+                  ),
+                ),
+              );
+            },
           ),
           Expanded(
             child: ListView(
@@ -159,6 +228,13 @@ class LayoutApp extends StatelessWidget {
                   3,
                   Icons.task_alt,
                   "قائمة المهام",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  4,
+                  Icons.person_outline,
+                  "الملف الشخصي",
                   width,
                   context,
                 ),

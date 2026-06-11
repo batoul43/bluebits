@@ -134,6 +134,7 @@ class QuestionBanksScreen extends StatelessWidget {
                                                 },
                                                 year: state.selectedYear,
                                                 title: state.subjects[index],
+                                                icon: Icon(Icons.question_answer),
                                               );
                                       },
                                     )

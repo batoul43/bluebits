@@ -1,26 +1,76 @@
 class ProfileModel {
-  final String? id;
-  final String? name;
-  final String? email;
-  final String? photo;
+  bool? isSuccess;
+  String? message;
+  int? statusCode;
+  Data? data;
 
-  ProfileModel({this.id, this.name, this.email, this.photo});
+  ProfileModel({this.isSuccess, this.message, this.statusCode, this.data});
 
-  factory ProfileModel.fromJson(Map<String, dynamic> json) {
-    // The API may wrap the user in a `data` field or return the object directly
-    final user = json['data'] ?? json;
-    return ProfileModel(
-      id: user['_id']?.toString() ?? user['id']?.toString(),
-      name: user['name']?.toString(),
-      email: user['email']?.toString(),
-      photo: user['photo']?.toString() ?? user['profile_image']?.toString(),
-    );
+  ProfileModel.fromJson(Map<String, dynamic> json) {
+    isSuccess = json['isSuccess'];
+    message = json['message'];
+    statusCode = json['statusCode'];
+    data = json['data'] != null ? Data.fromJson(json['data']) : null;
   }
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'email': email,
-    'photo': photo,
-  };
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['isSuccess'] = isSuccess;
+    data['message'] = message;
+    data['statusCode'] = statusCode;
+    if (this.data != null) {
+      data['data'] = this.data!.toJson();
+    }
+    return data;
+  }
+}
+
+class Data {
+  String? sId;
+  String? name;
+  String? email;
+  String? role;
+  String? profileImage;
+  bool? isVerified;
+  bool? isBanned;
+  String? createdAt;
+  String? updatedAt;
+
+  Data({
+    this.sId,
+    this.name,
+    this.email,
+    this.role,
+    this.profileImage,
+    this.isVerified,
+    this.isBanned,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  Data.fromJson(Map<String, dynamic> json) {
+    sId = json['_id'];
+    name = json['name'];
+    email = json['email'];
+    role = json['role'];
+    profileImage = json['profile_image'];
+    isVerified = json['isVerified'];
+    isBanned = json['isBanned'];
+    createdAt = json['createdAt'];
+    updatedAt = json['updatedAt'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['_id'] = sId;
+    data['name'] = name;
+    data['email'] = email;
+    data['role'] = role;
+    data['profile_image'] = profileImage;
+    data['isVerified'] = isVerified;
+    data['isBanned'] = isBanned;
+    data['createdAt'] = createdAt;
+    data['updatedAt'] = updatedAt;
+    return data;
+  }
 }
