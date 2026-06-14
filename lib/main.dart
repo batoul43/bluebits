@@ -21,9 +21,14 @@ Future<void> main() async {
   isopen = bool.parse(await CachHelper.getValue('isopen') ?? false.toString());
 
   runApp(
-    BlocProvider(
-      create: (context) =>
-          AuthCubit(authrepo: AuthRepo(authApi: AuthApi()))..checkAuthStatus(),
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              AuthCubit(authrepo: AuthRepo(authApi: AuthApi()))
+                ..checkAuthStatus(),
+        ),
+      ],
       child: const MainApp(),
     ),
   );
@@ -48,12 +53,12 @@ class _MainAppState extends State<MainApp> {
 
   void initDeepLinks() {
     _applinks = AppLinks();
-    _linkSubscription = _applinks.uriLinkStream.listen((Uri) {
-      _handleDeepLink(Uri);
+    _linkSubscription = _applinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
     });
-    _applinks.getInitialLink().then((Uri) {
-      if (Uri != null) {
-        _handleDeepLink(Uri);
+    _applinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
       }
     });
   }

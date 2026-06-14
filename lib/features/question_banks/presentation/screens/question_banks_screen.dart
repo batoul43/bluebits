@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
@@ -5,6 +6,10 @@ import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/ba
 import 'package:bluebits_app/features/question_banks/presentation/widget/question_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+// الرجاء استدعاء الـ YearCubit والـ YearState هنا بحسب مسارهما في مشروعك
+// import 'package:bluebits_app/core/shared/years/presentation/logic/year_cubit.dart';
+// import 'package:bluebits_app/core/shared/years/presentation/logic/year_state.dart';
 
 class QuestionBanksScreen extends StatelessWidget {
   const QuestionBanksScreen({super.key});
@@ -22,7 +27,7 @@ class QuestionBanksScreen extends StatelessWidget {
         child: BlocBuilder<BankCubit, BankState>(
           builder: (context, state) {
             return SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.symmetric(
                 horizontal: screenWidth * 0.05, // نفس هوامش صفحة الـ Home
                 vertical: screenHeight * 0.02,
@@ -31,7 +36,7 @@ class QuestionBanksScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (state is! BankQuestion)
-                    PageHeader(
+                    const PageHeader(
                       title: "مستودع الأسئلة",
                       subtitle:
                           "اختر السنة والفصل والمادة لعرض الأسئلة المتاحة",
@@ -40,7 +45,7 @@ class QuestionBanksScreen extends StatelessWidget {
 
                   // 3. حاوية البطاقات (الجسم الرئيسي للشاشة)
                   Container(
-                    padding: EdgeInsets.all(15),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface, // اللون الأبيض من الثيم
                       borderRadius: BorderRadius.circular(
@@ -48,50 +53,70 @@ class QuestionBanksScreen extends StatelessWidget {
                       ), // نفس انحناء بطاقات الـ Home
                     ),
                     child: state is BankYear
-                        ? GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: screenWidth > 600 ? 3 : 2,
-                            crossAxisSpacing: 15,
-                            mainAxisSpacing: 15,
-                            childAspectRatio: 0.85,
-                            children: [
-                              YearCard(
-                                title: "السنة الأولى",
-                                onTap: () {
-                                  context.read<BankCubit>().displaySubjects(
-                                    "السنة الأولى",
+                        // الربط مع YearCubit لعرض السنوات من الـ API
+                        ? BlocBuilder<YearCubit, YearState>(
+                            builder: (context, yearState) {
+                              if (yearState is YearLoading) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              } else if (yearState is YearError) {
+                                return Center(
+                                  child: Text(
+                                    yearState.message,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.error,
+                                    ),
+                                  ),
+                                );
+                              } else if (yearState is YearLoaded) {
+                                final yearsList = yearState.years;
+
+                                if (yearsList.isEmpty) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: Text(
+                                        "لا توجد سنوات دراسية مضافة بعد",
+                                      ),
+                                    ),
                                   );
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الثانية",
-                                onTap: () {
-                                  context.read<BankCubit>().displaySubjects(
-                                    "السنة الثانية",
-                                  );
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الثالثة",
-                                onTap: () {
-                                  context.read<BankCubit>().displaySubjects(
-                                    "السنة الثالثة",
-                                  );
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الرابعة",
-                                onTap: () {
-                                  context.read<BankCubit>().displaySubjects(
-                                    "السنة الرابعة",
-                                  );
-                                },
-                              ),
-                            ],
+                                }
+
+                                return GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: screenWidth > 600
+                                            ? 3
+                                            : 2,
+                                        crossAxisSpacing: 15,
+                                        mainAxisSpacing: 15,
+                                        childAspectRatio: 0.85,
+                                      ),
+                                  itemCount: yearsList.length,
+                                  itemBuilder: (context, index) {
+                                    final yearItem = yearsList[index];
+                                    return YearCard(
+                                      title: yearItem.name ?? "بدون اسم",
+                                      onTap: () {
+                                        // إرسال اسم السنة المحددة إلى BankCubit
+                                        context
+                                            .read<BankCubit>()
+                                            .displaySubjects(
+                                              yearItem.name ?? "",
+                                            );
+                                      },
+                                    );
+                                  },
+                                );
+                              }
+                              return const SizedBox();
+                            },
                           )
                         : state is! BankYear
-                        ? (Column(
+                        ? Column(
                             children: [
                               Align(
                                 alignment: Alignment.topLeft,
@@ -107,22 +132,20 @@ class QuestionBanksScreen extends StatelessWidget {
                                   },
                                 ),
                               ),
-
                               state is BankSubject
-                                  ? ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount: state
-                                          .subjects
-                                          .length, // Replace with actual number of subjects
-                                      itemBuilder: (context, index) {
-                                        return state.subjects.isEmpty
-                                            ? Center(
-                                                child: Text(
-                                                  "لا تتوفر بنوك لهذه السنة حاليا",
-                                                ),
-                                              )
-                                            : SubjectCard(
+                                  ? state.subjects.isEmpty
+                                        ? const Center(
+                                            child: Text(
+                                              "لا تتوفر بنوك لهذه السنة حاليا",
+                                            ),
+                                          )
+                                        : ListView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: state.subjects.length,
+                                            itemBuilder: (context, index) {
+                                              return SubjectCard(
                                                 isbank: true,
                                                 onTap: () {
                                                   context
@@ -134,17 +157,20 @@ class QuestionBanksScreen extends StatelessWidget {
                                                 },
                                                 year: state.selectedYear,
                                                 title: state.subjects[index],
-                                                icon: Icon(Icons.question_answer),
+                                                icon: const Icon(
+                                                  Icons.question_answer,
+                                                ),
                                               );
-                                      },
-                                    )
+                                            },
+                                          )
                                   : state is BankQuestion
                                   ? QuestionCard(questions: state.questions)
-                                  : SizedBox(),
+                                  : const SizedBox(),
                             ],
-                          ))
-                        : Center(
-                            child: Expanded(child: CircularProgressIndicator()),
+                          )
+                        : const Center(
+                            child:
+                                CircularProgressIndicator(), // تم إزالة الـ Expanded لتجنب انهيار الواجهة
                           ),
                   ),
                   SizedBox(height: screenHeight * 0.05),

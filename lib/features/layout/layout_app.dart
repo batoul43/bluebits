@@ -1,6 +1,10 @@
+import 'package:bluebits_app/core/shares/years/data/api_service/year_api_service.dart';
+import 'package:bluebits_app/core/shares/years/data/repositry/year_repositry.dart';
+import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
 import 'package:bluebits_app/core/widget/custom_app_bar.dart';
+import 'package:bluebits_app/features/admin_control_panel_screen/presentation/screens/admin_control_panel_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
@@ -41,7 +45,10 @@ class _LayoutAppState extends State<LayoutApp> {
     super.initState();
     _pages = [
       HomeScreen(),
-      LecturesScreen(),
+      BlocProvider(
+        create: (context) => LecturesCubit()..backTOYear(),
+        child: LecturesScreen(),
+      ),
       BlocProvider(
         create: (context) => BankCubit()..backTOYear(),
         child: QuestionBanksScreen(),
@@ -54,6 +61,7 @@ class _LayoutAppState extends State<LayoutApp> {
         child: TasksScreen(),
       ),
       ProfileScreen(),
+      AdminControlPanelScreen(),
       // أضيفي باقي الصفحات هنا
     ];
 
@@ -82,14 +90,16 @@ class _LayoutAppState extends State<LayoutApp> {
     final theme = Theme.of(context);
     return BlocProvider.value(
       value: _profileCubit,
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        drawer: _buildSideDrawer(screenWidth, context),
-        appBar: CustomAppBar(),
-        floatingActionButton: ChatBotFab(),
-        body: SafeArea(
-          child: BlocProvider(
-            create: (context) => LecturesCubit()..backTOYear(),
+      child: BlocProvider(
+        create: (context) =>
+            YearCubit(repository: YearRepository(YearApiService()))
+              ..fetchAllYears(),
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          drawer: _buildSideDrawer(screenWidth, context),
+          appBar: CustomAppBar(),
+          floatingActionButton: ChatBotFab(),
+          body: SafeArea(
             child: ValueListenableBuilder(
               valueListenable: _selectedDrawerIndex,
               builder: (context, selectedDrawerIndex, child) {
@@ -235,6 +245,14 @@ class _LayoutAppState extends State<LayoutApp> {
                   4,
                   Icons.person_outline,
                   "الملف الشخصي",
+                  width,
+                  context,
+                ),
+
+                _buildDrawerTile(
+                  5,
+                  Icons.admin_panel_settings,
+                  "لوحة التحكم",
                   width,
                   context,
                 ),

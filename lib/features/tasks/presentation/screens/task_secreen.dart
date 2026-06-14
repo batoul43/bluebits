@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
@@ -6,8 +7,6 @@ import 'package:bluebits_app/features/tasks/presentation/logic/cubit/acadimmicta
 import 'package:bluebits_app/features/tasks/presentation/logic/cubit/task_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-// مسار ملف الألوان
 
 class TasksScreen extends StatelessWidget {
   TasksScreen({super.key});
@@ -56,7 +55,7 @@ class TasksScreen extends StatelessWidget {
                 ),
                 SizedBox(height: screenHeight * 0.03),
 
-                // --- الحاوية الرئيسية للمهام ---
+                // --- الحاوية الرئيسية للمهام الشخصية ---
                 BlocBuilder<TaskCubit, TaskState>(
                   builder: (context, state) {
                     if (state is TaskInitial) {
@@ -127,7 +126,7 @@ class TasksScreen extends StatelessWidget {
                         ),
                       );
                     }
-                    return SizedBox();
+                    return const SizedBox();
                   },
                 ),
 
@@ -135,8 +134,11 @@ class TasksScreen extends StatelessWidget {
 
                 // --- كرت البومودورو (جلسة التركيز) ---
                 _buildPomodoroCard(screenWidth, screenHeight),
+
                 SizedBox(height: screenHeight * 0.05),
-                PageHeader(title: 'المهام الأكادمية', subtitle: ''),
+
+                // --- قسم المهام الأكاديمية ---
+                const PageHeader(title: 'المهام الأكاديمية', subtitle: ''),
                 Container(
                   margin: const EdgeInsets.only(top: 8),
                   height: screenHeight * 0.004,
@@ -144,8 +146,9 @@ class TasksScreen extends StatelessWidget {
                   color: theme.colorScheme.primary,
                 ),
                 SizedBox(height: screenHeight * 0.03),
+
                 Container(
-                  padding: EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface, // اللون الأبيض من الثيم
                     borderRadius: BorderRadius.circular(
@@ -153,91 +156,108 @@ class TasksScreen extends StatelessWidget {
                     ), // نفس انحناء بطاقات الـ Home
                   ),
                   child: BlocBuilder<AcadimmictaskCubit, AcadimictaskState>(
-                    builder: (context, state) {
-                      if (state is TaskYearAcadimic) {
-                        return GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: screenWidth > 600 ? 3 : 2,
-                          crossAxisSpacing: 15,
-                          mainAxisSpacing: 15,
-                          childAspectRatio: 0.85,
-                          children: [
-                            YearCard(
-                              title: "السنة الأولى",
-                              onTap: () {
-                                context
-                                    .read<AcadimmictaskCubit>()
-                                    .displaySubjects("السنة الأولى");
-                              },
-                            ),
-                            YearCard(
-                              title: "السنة الثانية",
-                              onTap: () {
-                                context
-                                    .read<AcadimmictaskCubit>()
-                                    .displaySubjects("السنة الثانية");
-                              },
-                            ),
-                            YearCard(
-                              title: "السنة الثالثة",
-                              onTap: () {
-                                context
-                                    .read<AcadimmictaskCubit>()
-                                    .displaySubjects("السنة الثالثة");
-                              },
-                            ),
-                            YearCard(
-                              title: "السنة الرابعة",
-                              onTap: () {
-                                context
-                                    .read<AcadimmictaskCubit>()
-                                    .displaySubjects("السنة الرابعة");
-                              },
-                            ),
-                          ],
+                    builder: (context, acadimicState) {
+                      // 1. حالة عرض السنوات
+                      if (acadimicState is TaskYearAcadimic) {
+                        // هنا نقوم بالاستماع للـ YearCubit لجلب السنوات من السيرفر
+                        return BlocBuilder<YearCubit, YearState>(
+                          builder: (context, yearState) {
+                            if (yearState is YearLoading) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            } else if (yearState is YearError) {
+                              return Center(
+                                child: Text(
+                                  yearState.message,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              );
+                            } else if (yearState is YearLoaded) {
+                              final yearsList = yearState.years;
+
+                              if (yearsList.isEmpty) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Text(
+                                      "لا توجد سنوات دراسية مضافة بعد",
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: screenWidth > 600 ? 3 : 2,
+                                      crossAxisSpacing: 15,
+                                      mainAxisSpacing: 15,
+                                      childAspectRatio: 0.85,
+                                    ),
+                                itemCount: yearsList.length,
+                                itemBuilder: (context, index) {
+                                  final yearItem = yearsList[index];
+                                  return YearCard(
+                                    title: yearItem.name ?? "بدون اسم",
+                                    onTap: () {
+                                      // تمرير اسم السنة للكيوبت الأكاديمي
+                                      context
+                                          .read<AcadimmictaskCubit>()
+                                          .displaySubjects(yearItem.name ?? "");
+                                    },
+                                  );
+                                },
+                              );
+                            }
+                            return const SizedBox();
+                          },
                         );
                       }
 
-                      // For other states show change-year button and subjects if available
+                      // 2. حالة عرض المواد أو التغيير
                       return Column(
                         children: [
-                          state is! TaskYearAcadimic
-                              ? Align(
-                                  alignment: Alignment.topLeft,
-                                  child: TextButton(
-                                    child: Text(
-                                      "تغيير السنة",
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      context
-                                          .read<AcadimmictaskCubit>()
-                                          .backTOYear();
-                                    },
+                          if (acadimicState is! TaskYearAcadimic)
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: TextButton(
+                                child: Text(
+                                  "تغيير السنة",
+                                  style: TextStyle(
+                                    color: theme.colorScheme.primary,
                                   ),
-                                )
-                              : SizedBox(),
-                          if (state is TaskSubjectAcadimic)
-                            state.subjects.isEmpty
-                                ? Center(
+                                ),
+                                onPressed: () {
+                                  context
+                                      .read<AcadimmictaskCubit>()
+                                      .backTOYear();
+                                },
+                              ),
+                            ),
+                          if (acadimicState is TaskSubjectAcadimic)
+                            acadimicState.subjects.isEmpty
+                                ? const Center(
                                     child: Text(
                                       "لا تتوفر مهام لهذه السنة حاليا",
                                     ),
                                   )
                                 : ListView.builder(
                                     shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    itemCount: state.subjects.length,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: acadimicState.subjects.length,
                                     itemBuilder: (context, index) {
                                       return SubjectCard(
                                         isbank: true,
                                         onTap: () {},
-                                        year: state.selectedYear,
-                                        title: state.subjects[index],
-                                        icon: Icon(
+                                        year: acadimicState.selectedYear,
+                                        title: acadimicState.subjects[index],
+                                        icon: const Icon(
                                           Icons.arrow_drop_down_rounded,
                                           color: ColorsManager.orange,
                                           size: 22,
@@ -246,7 +266,7 @@ class TasksScreen extends StatelessWidget {
                                     },
                                   )
                           else
-                            SizedBox(),
+                            const SizedBox(),
                         ],
                       );
                     },
@@ -287,10 +307,10 @@ class TasksScreen extends StatelessWidget {
               }
             },
             child: Container(
-              width: screenWidth * 0.12, // يعتمد على عرض الشاشة بدلاً من 48
+              width: screenWidth * 0.12,
               height: screenWidth * 0.12,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary, // الأزرق أو السماوي حسب الثيم
+                color: theme.colorScheme.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -306,7 +326,6 @@ class TasksScreen extends StatelessWidget {
           Expanded(
             child: TextFormField(
               controller: _taskController,
-              // تم ترك الـ InputDecoration شبه فارغ لأن الثيم في app_theme.dart سيتكفل بالباقي
               decoration: InputDecoration(
                 hintText: 'أضف مهمة جديدة..',
                 contentPadding: EdgeInsets.symmetric(
@@ -335,7 +354,7 @@ class TasksScreen extends StatelessWidget {
   ) {
     return ListView.separated(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: state.filteredTasks.length,
       separatorBuilder: (context, index) => Divider(
         color: theme.colorScheme.onSurface.withOpacity(0.05),
@@ -377,7 +396,7 @@ class TasksScreen extends StatelessWidget {
                         Icons.check_circle,
                         color: ColorsManager.green,
                         size: screenWidth * 0.065,
-                      ) // الأخضر
+                      )
                     : Icon(
                         Icons.radio_button_unchecked,
                         color: theme.colorScheme.onSurface.withOpacity(0.2),
@@ -392,7 +411,6 @@ class TasksScreen extends StatelessWidget {
   }
 
   Widget _buildPomodoroCard(double screenWidth, double screenHeight) {
-    // اللون البنفسجي المميز في الصورة
     return Container(
       width: screenWidth,
       decoration: BoxDecoration(
@@ -435,8 +453,7 @@ class TasksScreen extends StatelessWidget {
               ),
               SizedBox(height: screenHeight * 0.02),
               Text(
-                state
-                        is TasksLoaded // التعديل هنا
+                state is TasksLoaded
                     ? '${(state.remainingSeconds ~/ 60).toString().padLeft(2, '0')}:${(state.remainingSeconds % 60).toString().padLeft(2, '0')}'
                     : '25:00',
                 style: TextStyle(
@@ -468,18 +485,15 @@ class TasksScreen extends StatelessWidget {
                   ),
                   SizedBox(width: screenWidth * 0.06),
                   Container(
-                    width:
-                        screenWidth *
-                        0.14, // حجم زر التشغيل يعتمد على الميديا كويري
+                    width: screenWidth * 0.14,
                     height: screenWidth * 0.14,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: ColorsManager.white,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
                       icon: Icon(
-                        state
-                                is TasksLoaded // التعديل هنا
+                        state is TasksLoaded
                             ? state.isRunning
                                   ? Icons.pause
                                   : Icons.play_arrow_rounded

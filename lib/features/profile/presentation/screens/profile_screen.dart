@@ -39,6 +39,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _showSnackBar(context, state.message, theme.colorScheme.error);
             } else if (state is ProfileImageUploadSuccess) {
               _showSnackBar(context, "تم تحديث الصورة بنجاح", Colors.green);
+            } else if (state is ProfileUpdateSuccess) {
+              _showSnackBar(context, "تم تعديل الاسم بنجاح", Colors.green);
+              _refreshData(context);
+            } else if (state is ProfileUpdateError) {
+              _showSnackBar(context, state.message, theme.colorScheme.error);
             }
           },
           builder: (context, state) {
@@ -144,7 +149,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            _infoTile(Icons.person, "الاسم", p.name ?? "غير متوفر", theme),
+            _infoTile(
+              Icons.person,
+              "الاسم",
+              p.name ?? "غير متوفر",
+              theme,
+              onEdit: () => _showEditNameDialog(context, p.name),
+            ),
             Divider(color: theme.colorScheme.primary.withOpacity(0.1)),
             _infoTile(Icons.email, "البريد", p.email ?? "غير متوفر", theme),
           ],
@@ -153,7 +164,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _infoTile(IconData icon, String title, String value, ThemeData theme) {
+  Widget _infoTile(
+    IconData icon,
+    String title,
+    String value,
+    ThemeData theme, {
+    VoidCallback? onEdit,
+  }) {
     return ListTile(
       leading: Icon(icon, color: theme.colorScheme.primary),
       title: Text(
@@ -161,6 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
       ),
       subtitle: Text(value, style: theme.textTheme.titleMedium),
+      trailing: onEdit != null
+          ? IconButton(
+              icon: Icon(Icons.edit, color: theme.colorScheme.primary),
+              onPressed: onEdit,
+            )
+          : null,
     );
   }
 
@@ -172,13 +195,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
-  Future<void> _pickAndUpload(BuildContext context) async {
-    final XFile? image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+  Future<void> _showEditNameDialog(
+    BuildContext context,
+    String? currentName,
+  ) async {
+    final TextEditingController controller = TextEditingController(
+      text: currentName ?? '',
     );
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('تعديل الاسم'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(labelText: 'الاسم الجديد'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newName = controller.text.trim();
+                if (newName.isEmpty) {
+                  _showSnackBar(context, 'الرجاء إدخال اسم جديد', Colors.red);
+                  return;
+                }
+                Navigator.pop(context);
+                _updateName(context, newName);
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateName(BuildContext context, String newName) async {
     String? token = await CachHelper.getValue('Token');
-    if (image != null && token != null) {
+    if (token == null) {
+      _showSnackBar(context, 'لم يتم العثور على توكن المستخدم', Colors.red);
+      return;
+    }
+    context.read<ProfileCubit>().updateProfile({'name': newName}, token);
+  }
+
+  Future<void> _pickAndUpload(BuildContext context) async {
+    try {
+      final XFile? image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      if (image == null) {
+        _showSnackBar(context, 'لم يتم اختيار صورة من المعرض', Colors.grey);
+        return;
+      }
+
+      String? token = await CachHelper.getValue('Token');
+      if (token == null) {
+        _showSnackBar(context, 'لم يتم العثور على توكن المستخدم', Colors.red);
+        return;
+      }
+
       context.read<ProfileCubit>().uploadImage(File(image.path), token);
+    } catch (e) {
+      _showSnackBar(context, 'حدث خطأ أثناء اختيار الصورة: $e', Colors.red);
     }
   }
 }

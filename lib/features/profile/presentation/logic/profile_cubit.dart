@@ -13,6 +13,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   /// 1. جلب بيانات البروفايل
   Future<void> loadProfile(String token) async {
     emit(ProfileLoading());
+
     final response = await repo.getProfile(token);
 
     if (response != null &&
@@ -33,8 +34,7 @@ class ProfileCubit extends Cubit<ProfileState> {
         response.isSuccess == true &&
         response.data != null) {
       emit(ProfileUpdateSuccess(response.data!));
-      // تحديث الحالة العامة للبيانات بعد التحديث بنجاح
-      emit(ProfileSuccess(response.data!));
+      // طلب تحديث جديد بعد التغيير ليعرض بيانات حديثة من السيرفر
     } else {
       emit(ProfileUpdateError(response?.message ?? "فشل تحديث البيانات"));
     }

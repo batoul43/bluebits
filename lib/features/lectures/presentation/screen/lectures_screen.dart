@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/app_search_headers.dart';
@@ -12,7 +13,6 @@ class LecturesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // استخدام MediaQuery لجعل التصميم متجاوباً كما ناقشنا سابقاً
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
     final theme = Theme.of(context);
@@ -25,7 +25,7 @@ class LecturesScreen extends StatelessWidget {
             return SingleChildScrollView(
               physics: BouncingScrollPhysics(),
               padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.05, // نفس هوامش صفحة الـ Home
+                horizontal: screenWidth * 0.05,
                 vertical: screenHeight * 0.02,
               ),
               child: Column(
@@ -33,12 +33,14 @@ class LecturesScreen extends StatelessWidget {
                 children: [
                   // 1. عنوان الصفحة ووصفها
                   PageHeader(
-                    title: state is DisplaySemesters
+                    title: state is DisplayYears || state is LecturesInitial
+                        ? "مستودع المحاضرات"
+                        : state is DisplaySemesters
                         ? state.selectedYear
                         : state is DisplaySubjects
                         ? state.selectedSubject
                         : "مستودع المحاضرات",
-                    subtitle: state is DisplayYears
+                    subtitle: state is DisplayYears || state is LecturesInitial
                         ? "تصفح وحمل المحاضرات الأكاديمية المنظمة"
                         : state is DisplaySubjects
                         ? "اختر المادة المطلوبة"
@@ -56,56 +58,75 @@ class LecturesScreen extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface, // اللون الأبيض من الثيم
-                      borderRadius: BorderRadius.circular(
-                        25,
-                      ), // نفس انحناء بطاقات الـ Home
+                      color: theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(25),
                     ),
-                    child: state is DisplayYears
-                        ? GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: screenWidth > 600 ? 3 : 2,
-                            crossAxisSpacing: 15,
-                            mainAxisSpacing: 15,
-                            childAspectRatio: 0.85,
-                            children: [
-                              YearCard(
-                                title: "السنة الأولى",
-                                onTap: () {
-                                  context
-                                      .read<LecturesCubit>()
-                                      .displaySemesters("السنة الأولى");
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الثانية",
-                                onTap: () {
-                                  context
-                                      .read<LecturesCubit>()
-                                      .displaySemesters("السنة الثانية");
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الثالثة",
-                                onTap: () {
-                                  context
-                                      .read<LecturesCubit>()
-                                      .displaySemesters("السنة الثالثة");
-                                },
-                              ),
-                              YearCard(
-                                title: "السنة الرابعة",
-                                onTap: () {
-                                  context
-                                      .read<LecturesCubit>()
-                                      .displaySemesters("السنة الرابعة");
-                                },
-                              ),
-                            ],
+                    // تم تبسيط الشروط المنطقية هنا
+                    child: (state is DisplayYears || state is LecturesInitial)
+                        ? BlocBuilder<YearCubit, YearState>(
+                            builder: (context, yearState) {
+                              if (yearState is YearLoading) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              } else if (yearState is YearError) {
+                                return Center(
+                                  child: Text(
+                                    yearState.message,
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                );
+                              } else if (yearState is YearLoaded) {
+                                final yearsList = yearState.years;
+
+                                if (yearsList.isEmpty) {
+                                  return const Center(
+                                    child: Text(
+                                      "لا توجد سنوات دراسية مضافة بعد",
+                                    ),
+                                  );
+                                }
+
+                                return Expanded(
+                                  child: GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: screenWidth > 600
+                                              ? 3
+                                              : 2,
+                                          crossAxisSpacing: 15,
+                                          mainAxisSpacing: 15,
+                                          childAspectRatio: 0.85,
+                                        ),
+                                    itemCount: yearsList.length,
+                                    itemBuilder: (context, index) {
+                                      final yearItem = yearsList[index];
+                                      final yearTitle =
+                                          yearItem.name?.toString() ??
+                                          "بدون اسم";
+                                      final selectedYear =
+                                          yearItem.name?.toString() ?? "";
+
+                                      return YearCard(
+                                        title: yearTitle,
+                                        onTap: () {
+                                          context
+                                              .read<LecturesCubit>()
+                                              .displaySemesters(selectedYear);
+                                        },
+                                      );
+                                    },
+                                  ),
+                                );
+                              }
+                              // كحالة افتراضية
+                              return const SizedBox();
+                            },
                           )
-                        : state is! DisplayYears
-                        ? (Column(
+                        : Column(
                             children: [
                               Align(
                                 alignment: Alignment.topLeft,
@@ -120,12 +141,10 @@ class LecturesScreen extends StatelessWidget {
                                   ),
                                   onPressed: () {
                                     if (state is DisplaySubjects) {
-                                      // العودة من المواد إلى الفصول
                                       context
                                           .read<LecturesCubit>()
                                           .displaySemesters(state.selectedYear);
                                     } else if (state is DisplaySemesters) {
-                                      // العودة من الفصول إلى السنوات
                                       context
                                           .read<LecturesCubit>()
                                           .backTOYear();
@@ -133,55 +152,49 @@ class LecturesScreen extends StatelessWidget {
                                   },
                                 ),
                               ),
-
-                              state is DisplaySemesters
-                                  ? Column(
-                                      children: [
-                                        SemesterCard(
-                                          title: 'الفصل الأول',
-                                          onTap: () {
-                                            context
-                                                .read<LecturesCubit>()
-                                                .displaySubjects(
-                                                  state.selectedYear,
-                                                  'الفصل الأول',
-                                                );
-                                          },
-                                          year: state.selectedYear,
-                                        ),
-                                        SemesterCard(
-                                          title: 'الفصل الثاني',
-                                          onTap: () {
-                                            context
-                                                .read<LecturesCubit>()
-                                                .displaySubjects(
-                                                  state.selectedYear,
-                                                  'الفصل الثاني',
-                                                );
-                                          },
-                                          year: state.selectedYear,
-                                        ),
-                                      ],
-                                    )
-                                  : state is DisplaySubjects
-                                  ? ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount:
-                                          5, // Replace with actual number of subjects
-                                      itemBuilder: (context, index) {
-                                        return SubjectCard(
-                                          onTap: () {},
-                                          year: state.selectedYear,
-                                          title: 'المادة ${index + 1}',
-                                        );
+                              if (state is DisplaySemesters)
+                                Column(
+                                  children: [
+                                    SemesterCard(
+                                      title: 'الفصل الأول',
+                                      onTap: () {
+                                        context
+                                            .read<LecturesCubit>()
+                                            .displaySubjects(
+                                              state.selectedYear,
+                                              'الفصل الأول',
+                                            );
                                       },
-                                    )
-                                  : SizedBox(),
+                                      year: state.selectedYear,
+                                    ),
+                                    SemesterCard(
+                                      title: 'الفصل الثاني',
+                                      onTap: () {
+                                        context
+                                            .read<LecturesCubit>()
+                                            .displaySubjects(
+                                              state.selectedYear,
+                                              'الفصل الثاني',
+                                            );
+                                      },
+                                      year: state.selectedYear,
+                                    ),
+                                  ],
+                                ),
+                              if (state is DisplaySubjects)
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemCount: 5,
+                                  itemBuilder: (context, index) {
+                                    return SubjectCard(
+                                      onTap: () {},
+                                      year: state.selectedYear,
+                                      title: 'المادة ${index + 1}',
+                                    );
+                                  },
+                                ),
                             ],
-                          ))
-                        : Center(
-                            child: Expanded(child: CircularProgressIndicator()),
                           ),
                   ),
                   SizedBox(height: screenHeight * 0.05),
