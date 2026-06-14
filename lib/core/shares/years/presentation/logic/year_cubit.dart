@@ -23,8 +23,13 @@ class YearCubit extends Cubit<YearState> {
       print(yearModel);
       print('-------------------------------------------');
       if (yearModel.isSuccess == true) {
+        List<Data> sortedYears = List.from(yearModel.data!);
+        sortedYears.sort((a, b) => (b.order ?? 0).compareTo(a.order ?? 0));
         // ensure the data list has the correct type expected by YearLoaded
-        emit(YearLoaded((yearModel.data ?? [])));
+        print(
+          "السنوات المرتبة هي: ${sortedYears.map((e) => e.order).toList()}",
+        );
+        emit(YearLoaded(sortedYears));
       } else {
         emit(YearError(yearModel.message ?? 'فشل في جلب قائمة السنوات'));
       }

@@ -5,6 +5,7 @@ import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.da
 import 'package:bluebits_app/features/auth/presentation/widgets/custombutton.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/customtextfield.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
+import 'package:bluebits_app/features/layout/layout_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -160,7 +161,7 @@ class SignupScreen extends StatelessWidget {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => HomeScreen(),
+                                    builder: (context) => LayoutApp(),
                                   ),
                                 );
                               } else if (state is AuthFailed) {

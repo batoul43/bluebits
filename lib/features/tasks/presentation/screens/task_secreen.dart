@@ -414,7 +414,7 @@ class TasksScreen extends StatelessWidget {
     return Container(
       width: screenWidth,
       decoration: BoxDecoration(
-        color: ColorsManager.purple,
+        color: ColorsManager.pomodoroPurple,
         borderRadius: BorderRadius.circular(screenWidth * 0.06),
       ),
       padding: EdgeInsets.all(screenWidth * 0.06),
@@ -469,7 +469,7 @@ class TasksScreen extends StatelessWidget {
                 children: [
                   Container(
                     decoration: BoxDecoration(
-                      color: ColorsManager.purple.withOpacity(0.5),
+                      color: ColorsManager.pomodoroPurple.withOpacity(0.5),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -499,7 +499,7 @@ class TasksScreen extends StatelessWidget {
                                   : Icons.play_arrow_rounded
                             : Icons.play_arrow_rounded,
 
-                        color: ColorsManager.purple,
+                        color: ColorsManager.pomodoroPurple,
                         size: screenWidth * 0.08,
                       ),
                       onPressed: () {
