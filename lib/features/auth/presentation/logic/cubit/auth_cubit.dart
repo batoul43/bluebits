@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/features/auth/data/models/forget_password.dart';
+import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/data/models/usermodel.dart';
 import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
@@ -37,7 +38,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  Future<UserModel?> login(UserData logindata) async {
+  Future<UserModel?> login(UserLogin logindata) async {
     try {
       emit(AuthLoading());
       final logindataresult = await authrepo.login(logindata);

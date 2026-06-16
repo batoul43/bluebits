@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
+import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/data/models/usermodel.dart';
 
@@ -25,7 +26,7 @@ class AuthRepo {
     }
   }
 
-  Future<UserModel?> login(UserData logindata) async {
+  Future<UserModel?> login(UserLogin logindata) async {
     try {
       final loginDataResult = await authApi.login(logindata);
       return UserModel.fromJson(loginDataResult);

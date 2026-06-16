@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,7 +27,7 @@ class AuthApi {
     }
   }
 
-  Future<dynamic> login(UserData logindata) async {
+  Future<dynamic> login(UserLogin logindata) async {
     try {
       final response = await http.post(
         Uri.parse('${baseUrl}login'),

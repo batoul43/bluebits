@@ -1,3 +1,5 @@
+
+import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
@@ -5,6 +7,7 @@ import 'package:bluebits_app/features/lectures/presentation/widget/app_search_he
 import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/semester_card.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -20,190 +23,159 @@ class LecturesScreen extends StatelessWidget {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: SafeArea(
-        child: BlocBuilder<LecturesCubit, LecturesState>(
-          builder: (context, state) {
-            return SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.05,
-                vertical: screenHeight * 0.02,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. عنوان الصفحة ووصفها
-                  PageHeader(
-                    title: state is DisplayYears || state is LecturesInitial
-                        ? "مستودع المحاضرات"
-                        : state is DisplaySemesters
-                        ? state.selectedYear
-                        : state is DisplaySubjects
-                        ? state.selectedSubject
-                        : "مستودع المحاضرات",
-                    subtitle: state is DisplayYears || state is LecturesInitial
-                        ? "تصفح وحمل المحاضرات الأكاديمية المنظمة"
-                        : state is DisplaySubjects
-                        ? "اختر المادة المطلوبة"
-                        : 'اختر الفصل الدراسي',
-                  ),
-                  SizedBox(height: screenHeight * 0.03),
-
-                  // 2. شريط البحث الموحد
-                  AppSearchBar(
-                    hintText: "ابحث عن محاضرة بسرعة (مثال: خوارزميات)...",
-                  ),
-                  SizedBox(height: screenHeight * 0.03),
-
-                  // 3. حاوية البطاقات (الجسم الرئيسي للشاشة)
-                  Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    // تم تبسيط الشروط المنطقية هنا
-                    child: (state is DisplayYears || state is LecturesInitial)
-                        ? BlocBuilder<YearCubit, YearState>(
-                            builder: (context, yearState) {
-                              if (yearState is YearLoading) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              } else if (yearState is YearError) {
-                                return Center(
-                                  child: Text(
-                                    yearState.message,
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                );
-                              } else if (yearState is YearLoaded) {
-                                final yearsList = yearState.years;
-
-                                if (yearsList.isEmpty) {
-                                  return const Center(
-                                    child: Text(
-                                      "لا توجد سنوات دراسية مضافة بعد",
-                                    ),
-                                  );
-                                }
-
-                                return Expanded(
-                                  child: GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: screenWidth > 600
-                                              ? 3
-                                              : 2,
-                                          crossAxisSpacing: 15,
-                                          mainAxisSpacing: 15,
-                                          childAspectRatio: 0.85,
-                                        ),
-                                    itemCount: yearsList.length,
-                                    itemBuilder: (context, index) {
-                                      final yearItem = yearsList[index];
-                                      final yearTitle =
-                                          yearItem.name?.toString() ??
-                                          "بدون اسم";
-                                      final selectedYear =
-                                          yearItem.name?.toString() ?? "";
-
-                                      return YearCard(
-                                        title: yearTitle,
-                                        onTap: () {
-                                          context
-                                              .read<LecturesCubit>()
-                                              .displaySemesters(selectedYear);
-                                        },
-                                      );
-                                    },
-                                  ),
-                                );
-                              }
-                              // كحالة افتراضية
-                              return const SizedBox();
-                            },
-                          )
-                        : Column(
-                            children: [
-                              Align(
-                                alignment: Alignment.topLeft,
-                                child: TextButton(
-                                  child: Text(
-                                    state is DisplaySubjects
-                                        ? "تغيير الفصل"
-                                        : "تغيير السنة",
-                                    style: TextStyle(
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    if (state is DisplaySubjects) {
-                                      context
-                                          .read<LecturesCubit>()
-                                          .displaySemesters(state.selectedYear);
-                                    } else if (state is DisplaySemesters) {
-                                      context
-                                          .read<LecturesCubit>()
-                                          .backTOYear();
-                                    }
-                                  },
-                                ),
-                              ),
-                              if (state is DisplaySemesters)
-                                Column(
-                                  children: [
-                                    SemesterCard(
-                                      title: 'الفصل الأول',
-                                      onTap: () {
-                                        context
-                                            .read<LecturesCubit>()
-                                            .displaySubjects(
-                                              state.selectedYear,
-                                              'الفصل الأول',
-                                            );
-                                      },
-                                      year: state.selectedYear,
-                                    ),
-                                    SemesterCard(
-                                      title: 'الفصل الثاني',
-                                      onTap: () {
-                                        context
-                                            .read<LecturesCubit>()
-                                            .displaySubjects(
-                                              state.selectedYear,
-                                              'الفصل الثاني',
-                                            );
-                                      },
-                                      year: state.selectedYear,
-                                    ),
-                                  ],
-                                ),
-                              if (state is DisplaySubjects)
-                                ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  itemCount: 5,
-                                  itemBuilder: (context, index) {
-                                    return SubjectCard(
-                                      onTap: () {},
-                                      year: state.selectedYear,
-                                      title: 'المادة ${index + 1}',
-                                    );
-                                  },
-                                ),
-                            ],
-                          ),
-                  ),
-                  SizedBox(height: screenHeight * 0.05),
-                ],
-              ),
-            );
+        child: BlocListener<SemesterCubit, SemesterState>(
+          listener: (context, state) {
+            if (state is SemesterError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              );
+            }
           },
+          child: BlocBuilder<LecturesCubit, LecturesState>(
+            builder: (context, state) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.05,
+                  vertical: screenHeight * 0.02,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. عنوان الصفحة
+                    PageHeader(
+                      title: state is DisplayYears || state is LecturesInitial
+                          ? "مستودع المحاضرات"
+                          : state is DisplaySemesters
+                              ? state.selectedYear
+                              : state is DisplaySubjects
+                                  ? state.selectedSubject
+                                  : "مستودع المحاضرات",
+                      subtitle: state is DisplayYears || state is LecturesInitial
+                          ? "تصفح وحمل المحاضرات الأكاديمية المنظمة"
+                          : state is DisplaySubjects
+                              ? "اختر المادة المطلوبة"
+                              : 'اختر الفصل الدراسي',
+                    ),
+                    SizedBox(height: screenHeight * 0.03),
+
+                    // 2. شريط البحث
+                    const AppSearchBar(
+                      hintText: "ابحث عن محاضرة بسرعة (مثال: خوارزميات)...",
+                    ),
+                    SizedBox(height: screenHeight * 0.03),
+
+                    // 3. المحتوى المتغير
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: _buildBodyContent(context, state, screenWidth),
+                    ),
+                    SizedBox(height: screenHeight * 0.05),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBodyContent(BuildContext context, LecturesState state, double screenWidth) {
+    // حالة عرض السنوات
+    if (state is DisplayYears || state is LecturesInitial) {
+      return BlocBuilder<YearCubit, YearState>(
+        builder: (context, yearState) {
+          if (yearState is YearLoading) return const Center(child: CircularProgressIndicator());
+          if (yearState is YearError) return Center(child: Text(yearState.message, style: const TextStyle(color: Colors.red)));
+          if (yearState is YearLoaded) {
+            if (yearState.years.isEmpty) return const Center(child: Text("لا توجد سنوات دراسية"));
+
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: screenWidth > 600 ? 3 : 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: yearState.years.length,
+              itemBuilder: (context, index) {
+                final yearItem = yearState.years[index];
+                return YearCard(
+                  title: yearItem.name ?? "بدون اسم",
+                  onTap: () {
+                    context.read<LecturesCubit>().displaySemesters(yearItem.name ?? "");
+                    context.read<SemesterCubit>().fetchAllSemesters();
+                  },
+                );
+              },
+            );
+          }
+          return const SizedBox();
+        },
+      );
+    }
+
+    // حالة عرض الفصول أو المواد (نضيف زر العودة)
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.topLeft,
+          child: TextButton(
+            onPressed: () {
+              if (state is DisplaySubjects) {
+                context.read<LecturesCubit>().displaySemesters(state.selectedYear);
+              } else if (state is DisplaySemesters) {
+                context.read<LecturesCubit>().backTOYear();
+              }
+            },
+            child: Text(state is DisplaySubjects ? "تغيير الفصل" : "تغيير السنة"),
+          ),
+        ),
+        
+        // عرض الفصول
+        if (state is DisplaySemesters)
+          BlocBuilder<SemesterCubit, SemesterState>(
+            builder: (context, semesterState) {
+              if (semesterState is SemesterLoading) return const Center(child: CircularProgressIndicator());
+              if (semesterState is SemesterLoaded) {
+                if (semesterState.semesters.isEmpty) return const Text("لا توجد فصول");
+                
+                return Column(
+                  children: semesterState.semesters.map((item) {
+                    return SemesterCard(
+                      title: item.name ?? "بدون اسم",
+                      year: state.selectedYear,
+                      onTap: () {
+                        context.read<LecturesCubit>().displaySubjects(state.selectedYear, item.name ?? "");
+                      },
+                    );
+                  }).toList(),
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+
+        // عرض المواد (Placeholder)
+        if (state is DisplaySubjects)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 5,
+            itemBuilder: (context, index) => SubjectCard(
+              onTap: () {},
+              year: state.selectedYear,
+              title: 'المادة ${index + 1}',
+            ),
+          ),
+      ],
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/theming/colors.dart';
+import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/forget_password.dart';
@@ -84,25 +85,25 @@ class SigninScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
 
-                          CustomTextField(
-                            icon: Icons.person_outline,
-                            isPassword: false,
-                            controller: _nameController,
-                            labelText: 'الاسم الكامل',
-                            hintText: 'محمد',
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "الاسم مطلوب";
-                              }
-                              if (value.length < 4) {
-                                return "الاسم يجب أن يكون 4 حروف فأكثر";
-                              }
-                              if (!_nameRegex.hasMatch(value)) {
-                                return "الاسم يجب أن يحتوي على حروف فقط";
-                              }
-                              return null;
-                            },
-                          ),
+                          // CustomTextField(
+                          //   icon: Icons.person_outline,
+                          //   isPassword: false,
+                          //   controller: _nameController,
+                          //   labelText: 'الاسم الكامل',
+                          //   hintText: 'محمد',
+                          //   validator: (value) {
+                          //     if (value == null || value.isEmpty) {
+                          //       return "الاسم مطلوب";
+                          //     }
+                          //     if (value.length < 4) {
+                          //       return "الاسم يجب أن يكون 4 حروف فأكثر";
+                          //     }
+                          //     if (!_nameRegex.hasMatch(value)) {
+                          //       return "الاسم يجب أن يحتوي على حروف فقط";
+                          //     }
+                          //     return null;
+                          //   },
+                          // ),
                           const SizedBox(height: 20),
 
                           CustomTextField(
@@ -181,10 +182,9 @@ class SigninScreen extends StatelessWidget {
                                 onPressed: () {
                                   if (_formKey.currentState!.validate()) {
                                     context.read<AuthCubit>().login(
-                                      UserData(
+                                      UserLogin(
                                         email: _emailController.text,
                                         password: _passwordController.text,
-                                        name: _nameController.text,
                                       ),
                                     );
                                   }

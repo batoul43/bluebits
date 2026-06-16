@@ -1,3 +1,6 @@
+import 'package:bluebits_app/core/shares/semester/data/api_service/semester_api_service.dart';
+import 'package:bluebits_app/core/shares/semester/data/repositry/semester_repositry.dart';
+import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
 import 'package:bluebits_app/core/shares/years/data/api_service/year_api_service.dart';
 import 'package:bluebits_app/core/shares/years/data/repositry/year_repositry.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
@@ -90,10 +93,19 @@ class _LayoutAppState extends State<LayoutApp> {
     final theme = Theme.of(context);
     return BlocProvider.value(
       value: _profileCubit,
-      child: BlocProvider(
-        create: (context) =>
-            YearCubit(repository: YearRepository(YearApiService()))
-              ..fetchAllYears(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) =>
+                YearCubit(repository: YearRepository(YearApiService()))
+                  ..fetchAllYears(),
+          ),
+          BlocProvider(
+            create: (context) => SemesterCubit(
+              repository: SemesterRepository(SemesterApiService()),
+            )..fetchAllSemesters(),
+          ),
+        ],
         child: Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           drawer: _buildSideDrawer(screenWidth, context),
