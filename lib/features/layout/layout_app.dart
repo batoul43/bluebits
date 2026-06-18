@@ -1,6 +1,9 @@
 import 'package:bluebits_app/core/shares/semester/data/api_service/semester_api_service.dart';
 import 'package:bluebits_app/core/shares/semester/data/repositry/semester_repositry.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
+import 'package:bluebits_app/core/shares/subjects/data/api_Service/subject_api_service.dart';
+import 'package:bluebits_app/core/shares/subjects/data/repositry/subjects_repositry.dart';
+import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/data/api_service/year_api_service.dart';
 import 'package:bluebits_app/core/shares/years/data/repositry/year_repositry.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
@@ -104,6 +107,10 @@ class _LayoutAppState extends State<LayoutApp> {
             create: (context) => SemesterCubit(
               repository: SemesterRepository(SemesterApiService()),
             )..fetchAllSemesters(),
+          ),
+          BlocProvider(
+            create: (context) =>
+                SubjectCubit(SubjectRepository(SubjectApiService())),
           ),
         ],
         child: Scaffold(

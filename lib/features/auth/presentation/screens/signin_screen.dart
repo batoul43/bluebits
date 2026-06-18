@@ -1,6 +1,5 @@
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
-import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/forget_password.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signup_screen.dart';
@@ -15,14 +14,12 @@ class SigninScreen extends StatelessWidget {
   SigninScreen({super.key});
 
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   final RegExp _emailRegex = RegExp(
     r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
   );
-  final RegExp _nameRegex = RegExp(r'^[a-zA-Z\s\u0600-\u06FF]+$');
 
   @override
   Widget build(BuildContext context) {

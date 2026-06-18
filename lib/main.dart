@@ -47,7 +47,6 @@ class _MainAppState extends State<MainApp> {
   StreamSubscription<Uri>? _linkSubscription;
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
