@@ -62,7 +62,7 @@ class QuestionCard extends StatelessWidget {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  width: double.infinity,
+                  width: screenWidth,
                   decoration: BoxDecoration(
                     // إذا كان الخيار محدداً يأخذ خلفية شفافة من اللون الأساسي (الأزرق/السيان)
                     color: isSelected

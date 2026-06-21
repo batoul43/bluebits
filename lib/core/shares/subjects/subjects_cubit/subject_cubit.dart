@@ -14,7 +14,6 @@ class SubjectCubit extends Cubit<SubjectState> {
   // 1. إنشاء مادة جديدة (Create)
   // ==========================================
   Future<void> createSubject({
-    required String token,
     required String name,
     required String description,
     required String createdBy,
@@ -23,6 +22,8 @@ class SubjectCubit extends Cubit<SubjectState> {
   }) async {
     emit(SubjectActionLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.createSubject(
         token: token,
         name: name,
@@ -31,7 +32,7 @@ class SubjectCubit extends Cubit<SubjectState> {
         yearId: yearId,
         semesterId: semesterId,
       );
-
+      // getAllSubjects();
       if (response.isSuccess == true) {
         emit(SubjectActionSuccess(response, 'تم إنشاء المادة بنجاح'));
       } else {
@@ -45,9 +46,11 @@ class SubjectCubit extends Cubit<SubjectState> {
   // ==========================================
   // 2. جلب جميع المواد (Get All)
   // ==========================================
-  Future<void> getAllSubjects(String token) async {
+  Future<void> getAllSubjects() async {
     emit(GetSubjectsLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.getAllSubjects(token);
 
       if (response.isSuccess == true) {
@@ -63,9 +66,11 @@ class SubjectCubit extends Cubit<SubjectState> {
   // ==========================================
   // 3. جلب مادة محددة (Get One)
   // ==========================================
-  Future<void> getSubjectById(String token, String subjectId) async {
+  Future<void> getSubjectById(String subjectId) async {
     emit(GetSubjectsLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.getSubjectById(token, subjectId);
 
       if (response.isSuccess == true) {
@@ -84,13 +89,14 @@ class SubjectCubit extends Cubit<SubjectState> {
   // 4. تحديث مادة (Update)
   // ==========================================
   Future<void> updateSubject({
-    required String token,
     required String subjectId,
     String? name,
     String? description,
   }) async {
     emit(SubjectActionLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.updateSubject(
         token: token,
         subjectId: subjectId,
@@ -111,9 +117,11 @@ class SubjectCubit extends Cubit<SubjectState> {
   // ==========================================
   // 5. حذف مادة (Delete)
   // ==========================================
-  Future<void> deleteSubject(String token, String subjectId) async {
+  Future<void> deleteSubject(String subjectId) async {
     emit(SubjectActionLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.deleteSubject(token, subjectId);
 
       if (response.isSuccess == true) {
@@ -129,9 +137,11 @@ class SubjectCubit extends Cubit<SubjectState> {
   // ==========================================
   // 6. جلب المواد حسب السنة (Get By Year)
   // ==========================================
-  Future<void> getSubjectsByYear(String token, String yearId) async {
+  Future<void> getSubjectsByYear(String yearId) async {
     emit(GetSubjectsLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.getSubjectsByYear(token, yearId);
 
       if (response.isSuccess == true) {
@@ -147,9 +157,11 @@ class SubjectCubit extends Cubit<SubjectState> {
   // ==========================================
   // 7. جلب المواد حسب الفصل (Get By Semester)
   // ==========================================
-  Future<void> getSubjectsBySemester(String token, String semesterId) async {
+  Future<void> getSubjectsBySemester(String semesterId) async {
     emit(GetSubjectsLoading());
     try {
+      final String token = await CachHelper.getValue('Token') ?? "";
+      print('=== DEBUG: Token being sent to Server is: "$token" ===');
       final response = await repository.getSubjectsBySemester(
         token,
         semesterId,

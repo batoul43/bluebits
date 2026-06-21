@@ -1,5 +1,4 @@
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
-import 'package:bluebits_app/core/shares/subjects/data/models/subjects_by_year_semester.dart';
 import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
@@ -12,6 +11,7 @@ import 'package:bluebits_app/core/widget/year_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+// ignore: must_be_immutable
 class LecturesScreen extends StatelessWidget {
   LecturesScreen({super.key});
   String yearId = '';

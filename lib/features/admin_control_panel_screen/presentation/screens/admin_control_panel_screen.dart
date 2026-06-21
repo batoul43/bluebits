@@ -1,10 +1,11 @@
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
+import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/models/year_model.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_section_container.dart';
-import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_simple_dropdown.dart';
+// import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_simple_dropdown.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_submit_button.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_text_field.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/widjets/admin_year_dropdown.dart';
@@ -12,9 +13,10 @@ import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// تم استيراد موديل الفصول مع إعطائه اسماً مستعاراً لمنع التعارض مع كلاس Data الخاص بالسنوات
 import 'package:bluebits_app/core/shares/semester/data/models/semestrs_model.dart'
     as sem_model;
+import 'package:bluebits_app/core/shares/subjects/data/models/subjects_models.dart'
+    as subj_model;
 
 class AdminControlPanelScreen extends StatefulWidget {
   const AdminControlPanelScreen({super.key});
@@ -37,6 +39,8 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
   final _deleteSemesterFormKey = GlobalKey<FormState>();
 
   final _subjectFormKey = GlobalKey<FormState>();
+  final _updateSubjectFormKey = GlobalKey<FormState>();
+  final _deleteSubjectFormKey = GlobalKey<FormState>();
 
   // ==========================================
   // 2. متحكمات النصوص
@@ -51,6 +55,10 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
 
   final TextEditingController _subjectNameController = TextEditingController();
   final TextEditingController _subjectDescController = TextEditingController();
+  final TextEditingController _newSubjectNameController =
+      TextEditingController();
+  final TextEditingController _newSubjectDescController =
+      TextEditingController();
 
   // ==========================================
   // 3. النوتيفايرز للقوائم المنسدلة
@@ -61,29 +69,38 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
   final ValueNotifier<String?> _selectedYearToDeleteNotifier = ValueNotifier(
     null,
   );
-  final ValueNotifier<String?> _selectedYearForSubjectNotifier = ValueNotifier(
-    null,
-  );
-  final ValueNotifier<String?> _selectedSemesterNotifier = ValueNotifier(null);
 
   final ValueNotifier<String?> _selectedSemesterToUpdateNotifier =
       ValueNotifier(null);
   final ValueNotifier<String?> _selectedSemesterToDeleteNotifier =
       ValueNotifier(null);
 
+  final ValueNotifier<String?> _selectedYearForSubjectNotifier = ValueNotifier(
+    null,
+  );
+  final ValueNotifier<String?> _selectedSemesterNotifier = ValueNotifier(null);
+
+  final ValueNotifier<String?> _selectedSubjectToUpdateNotifier = ValueNotifier(
+    null,
+  );
+  final ValueNotifier<String?> _selectedSubjectToDeleteNotifier = ValueNotifier(
+    null,
+  );
+
   // ==========================================
   // 4. التخزين المؤقت للبيانات
   // ==========================================
   List<Data> _cachedYears = [];
-
-  // تم تحويل dynamic إلى الموديل الصحيح الخاص بالفصول
   List<sem_model.Data> _cachedSemesters = [];
+  List<subj_model.Data> _cachedSubjects = [];
 
   @override
   void initState() {
     super.initState();
     context.read<YearCubit>().fetchAllYears();
     context.read<SemesterCubit>().fetchAllSemesters();
+    // جلب المواد عند فتح الشاشة
+    context.read<SubjectCubit>().getAllSubjects();
   }
 
   @override
@@ -91,17 +108,26 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
     _yearNameController.dispose();
     _yearOrderController.dispose();
     _newYearNameController.dispose();
+
     _semesterNameController.dispose();
     _newSemesterNameController.dispose();
+
     _subjectNameController.dispose();
     _subjectDescController.dispose();
+    _newSubjectNameController.dispose();
+    _newSubjectDescController.dispose();
 
     _selectedYearToUpdateNotifier.dispose();
     _selectedYearToDeleteNotifier.dispose();
-    _selectedYearForSubjectNotifier.dispose();
-    _selectedSemesterNotifier.dispose();
+
     _selectedSemesterToUpdateNotifier.dispose();
     _selectedSemesterToDeleteNotifier.dispose();
+
+    _selectedYearForSubjectNotifier.dispose();
+    _selectedSemesterNotifier.dispose();
+    _selectedSubjectToUpdateNotifier.dispose();
+    _selectedSubjectToDeleteNotifier.dispose();
+
     super.dispose();
   }
 
@@ -111,19 +137,28 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
     final double screenHeight = MediaQuery.of(context).size.height;
     final theme = Theme.of(context);
 
+    // ==========================================
+    // مراقبة الحالات لجلب البيانات
+    // ==========================================
     final yearState = context.watch<YearCubit>().state;
     final semesterState = context.watch<SemesterCubit>().state;
+    final subjectState = context.watch<SubjectCubit>().state;
 
     if (yearState is YearLoaded) {
       _cachedYears = List.from(yearState.years);
     }
-
     if (semesterState is SemesterLoaded) {
       _cachedSemesters = List.from(semesterState.semesters);
     }
+    if (subjectState is GetSubjectsSuccess) {
+      _cachedSubjects = List.from(subjectState.subjectModel.data ?? []);
+    }
 
     final bool isLoading =
-        yearState is YearLoading || semesterState is SemesterLoading;
+        yearState is YearLoading ||
+        semesterState is SemesterLoading ||
+        subjectState is GetSubjectsLoading ||
+        subjectState is SubjectActionLoading;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -131,6 +166,7 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
         backgroundColor: theme.scaffoldBackgroundColor,
         body: MultiBlocListener(
           listeners: [
+            // مستمع السنوات
             BlocListener<YearCubit, YearState>(
               listener: (context, state) {
                 if (state is YearActionSuccess) {
@@ -156,6 +192,7 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
               },
             ),
 
+            // مستمع الفصول
             BlocListener<SemesterCubit, SemesterState>(
               listener: (context, state) {
                 if (state is SemesterActionSuccess) {
@@ -179,6 +216,38 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                 }
               },
             ),
+
+            // مستمع المواد
+            BlocListener<SubjectCubit, SubjectState>(
+              listener: (context, state) {
+                if (state is SubjectActionSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: ColorsManager.green,
+                    ),
+                  );
+                  _subjectNameController.clear();
+                  _subjectDescController.clear();
+                  _newSubjectNameController.clear();
+                  _newSubjectDescController.clear();
+                  _selectedYearForSubjectNotifier.value = null;
+                  _selectedSemesterNotifier.value = null;
+                  _selectedSubjectToUpdateNotifier.value = null;
+                  _selectedSubjectToDeleteNotifier.value = null;
+
+                  // تحديث قائمة المواد بعد أي عملية نجاح (إضافة، تعديل، حذف)
+                  context.read<SubjectCubit>().getAllSubjects();
+                } else if (state is SubjectActionFailure) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.errorMessage),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
+              },
+            ),
           ],
           child: SafeArea(
             child: Stack(
@@ -194,7 +263,8 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                     children: [
                       const PageHeader(
                         title: 'لوحة التحكم',
-                        subtitle: 'إدارة وإنشاء وتعديل وحذف السنوات والفصول',
+                        subtitle:
+                            'إدارة وإنشاء وتعديل وحذف السنوات والفصول والمواد',
                       ),
                       Container(
                         margin: const EdgeInsets.only(top: 8),
@@ -382,7 +452,6 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                                 valueListenable:
                                     _selectedSemesterToUpdateNotifier,
                                 builder: (context, selectedValue, _) {
-                                  // الحل هنا: حماية الواجهة في حال اختفى العنصر بعد التعديل أو الحذف
                                   final isValueValid = _cachedSemesters.any(
                                     (element) =>
                                         element.id?.toString() == selectedValue,
@@ -393,9 +462,12 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
 
                                   return DropdownButtonFormField<String>(
                                     value: safeValue,
+                                    isExpanded:
+                                        true, // تم إضافة هذه الخاصية لمنع الخطأ
                                     hint: Text(
                                       'اختر الفصل المراد تعديله',
                                       style: theme.textTheme.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     decoration: InputDecoration(
                                       filled: true,
@@ -410,6 +482,7 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                                         value: semester.id?.toString(),
                                         child: Text(
                                           semester.name ?? 'بدون اسم',
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       );
                                     }).toList(),
@@ -465,7 +538,6 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                                 valueListenable:
                                     _selectedSemesterToDeleteNotifier,
                                 builder: (context, selectedValue, _) {
-                                  // الحل هنا أيضاً: حماية الواجهة من الخطأ بعد الحذف
                                   final isValueValid = _cachedSemesters.any(
                                     (element) =>
                                         element.id?.toString() == selectedValue,
@@ -476,9 +548,12 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
 
                                   return DropdownButtonFormField<String>(
                                     value: safeValue,
+                                    isExpanded:
+                                        true, // تم إضافة هذه الخاصية لمنع الخطأ
                                     hint: Text(
                                       'اختر الفصل المراد حذفه',
                                       style: theme.textTheme.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     decoration: InputDecoration(
                                       filled: true,
@@ -493,6 +568,7 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                                         value: semester.id?.toString(),
                                         child: Text(
                                           semester.name ?? 'بدون اسم',
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       );
                                     }).toList(),
@@ -531,8 +607,10 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                       SizedBox(height: screenHeight * 0.03),
 
                       // ========================================================
-                      // إنشاء مادة
+                      // أجزاء المواد الدراسية (الإنشاء - التعديل - الحذف)
                       // ========================================================
+
+                      // 1. إنشاء مادة
                       AdminSectionContainer(
                         title: 'إنشاء مادة جديدة',
                         icon: Icons.book_outlined,
@@ -563,13 +641,54 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                                   ),
                                   SizedBox(width: screenWidth * 0.03),
                                   Expanded(
-                                    child: AdminSimpleDropdown(
-                                      hint: 'اختر الفصل',
-                                      notifier: _selectedSemesterNotifier,
-                                      items: const [
-                                        'الفصل الأول',
-                                        'الفصل الثاني',
-                                      ],
+                                    child: ValueListenableBuilder<String?>(
+                                      valueListenable:
+                                          _selectedSemesterNotifier,
+                                      builder: (context, selectedValue, _) {
+                                        final isValueValid = _cachedSemesters
+                                            .any(
+                                              (element) =>
+                                                  element.id?.toString() ==
+                                                  selectedValue,
+                                            );
+                                        final safeValue = isValueValid
+                                            ? selectedValue
+                                            : null;
+
+                                        return DropdownButtonFormField<String>(
+                                          value: safeValue,
+                                          isExpanded:
+                                              true, // تم إضافة هذه الخاصية مهمة جداً داخل الـ Row
+                                          hint: Text(
+                                            'اختر الفصل',
+                                            style: theme.textTheme.bodyMedium,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          decoration: const InputDecoration(
+                                            contentPadding:
+                                                EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 15,
+                                                ),
+                                          ),
+                                          items: _cachedSemesters.map((
+                                            semester,
+                                          ) {
+                                            return DropdownMenuItem<String>(
+                                              value: semester.id?.toString(),
+                                              child: Text(
+                                                semester.name ?? 'بدون اسم',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) =>
+                                              _selectedSemesterNotifier.value =
+                                                  value,
+                                          validator: (value) =>
+                                              value == null ? 'مطلوب' : null,
+                                        );
+                                      },
                                     ),
                                   ),
                                 ],
@@ -577,10 +696,27 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                               SizedBox(height: screenHeight * 0.03),
                               AdminSubmitButton(
                                 title: 'إضافة المادة',
-                                onPressed: () {
+                                onPressed: () async {
                                   if (_subjectFormKey.currentState!
                                       .validate()) {
-                                    // الكود الخاص بالمواد يوضع هنا
+                                    if (context.mounted) {
+                                      context
+                                          .read<SubjectCubit>()
+                                          .createSubject(
+                                            name: _subjectNameController.text
+                                                .trim(),
+                                            description: _subjectDescController
+                                                .text
+                                                .trim(),
+                                            createdBy: "Admin",
+                                            yearId:
+                                                _selectedYearForSubjectNotifier
+                                                    .value!,
+                                            semesterId:
+                                                _selectedSemesterNotifier
+                                                    .value!,
+                                          );
+                                    }
                                   }
                                 },
                               ),
@@ -588,11 +724,197 @@ class _AdminControlPanelScreenState extends State<AdminControlPanelScreen> {
                           ),
                         ),
                       ),
+                      SizedBox(height: screenHeight * 0.03),
+
+                      // 2. تعديل مادة
+                      AdminSectionContainer(
+                        title: 'تعديل بيانات مادة',
+                        icon: Icons.edit_document,
+                        color: Colors.teal,
+                        child: Form(
+                          key: _updateSubjectFormKey,
+                          child: Column(
+                            children: [
+                              ValueListenableBuilder<String?>(
+                                valueListenable:
+                                    _selectedSubjectToUpdateNotifier,
+                                builder: (context, selectedValue, _) {
+                                  final isValueValid = _cachedSubjects.any(
+                                    (element) => element.sId == selectedValue,
+                                  );
+                                  final safeValue = isValueValid
+                                      ? selectedValue
+                                      : null;
+
+                                  return DropdownButtonFormField<String>(
+                                    value: safeValue,
+                                    isExpanded:
+                                        true, // تم إضافة هذه الخاصية لمنع الخطأ
+                                    hint: Text(
+                                      'اختر المادة المراد تعديلها',
+                                      style: theme.textTheme.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: theme.cardColor,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    items: _cachedSubjects.map((subject) {
+                                      return DropdownMenuItem<String>(
+                                        value: subject.sId,
+                                        child: Text(
+                                          subject.name ?? 'بدون اسم',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      _selectedSubjectToUpdateNotifier.value =
+                                          value;
+                                      // تعبئة الحقول بالبيانات الحالية
+                                      final selectedSubject = _cachedSubjects
+                                          .firstWhere(
+                                            (element) => element.sId == value,
+                                          );
+                                      _newSubjectNameController.text =
+                                          selectedSubject.name ?? '';
+                                      _newSubjectDescController.text =
+                                          selectedSubject.description ?? '';
+                                    },
+                                    validator: (value) => value == null
+                                        ? 'يرجى اختيار المادة'
+                                        : null,
+                                  );
+                                },
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+                              AdminTextField(
+                                controller: _newSubjectNameController,
+                                hint: 'الاسم الجديد للمادة',
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+                              AdminTextField(
+                                controller: _newSubjectDescController,
+                                hint: 'الوصف الجديد للمادة',
+                                maxLines: 3,
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+                              AdminSubmitButton(
+                                title: 'حفظ تعديل المادة',
+                                onPressed: () {
+                                  if (_updateSubjectFormKey.currentState!
+                                      .validate()) {
+                                    if (context.mounted) {
+                                      context
+                                          .read<SubjectCubit>()
+                                          .updateSubject(
+                                            subjectId:
+                                                _selectedSubjectToUpdateNotifier
+                                                    .value!,
+                                            name: _newSubjectNameController.text
+                                                .trim(),
+                                            description:
+                                                _newSubjectDescController.text
+                                                    .trim(),
+                                          );
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: screenHeight * 0.03),
+
+                      // 3. حذف مادة
+                      AdminSectionContainer(
+                        title: 'حذف مادة',
+                        icon: Icons.delete_forever_outlined,
+                        color: theme.colorScheme.error,
+                        child: Form(
+                          key: _deleteSubjectFormKey,
+                          child: Column(
+                            children: [
+                              ValueListenableBuilder<String?>(
+                                valueListenable:
+                                    _selectedSubjectToDeleteNotifier,
+                                builder: (context, selectedValue, _) {
+                                  final isValueValid = _cachedSubjects.any(
+                                    (element) => element.sId == selectedValue,
+                                  );
+                                  final safeValue = isValueValid
+                                      ? selectedValue
+                                      : null;
+
+                                  return DropdownButtonFormField<String>(
+                                    value: safeValue,
+                                    isExpanded:
+                                        true, // تم إضافة هذه الخاصية لمنع الخطأ
+                                    hint: Text(
+                                      'اختر المادة المراد حذفها',
+                                      style: theme.textTheme.bodyMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: theme.cardColor,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    items: _cachedSubjects.map((subject) {
+                                      return DropdownMenuItem<String>(
+                                        value: subject.sId,
+                                        child: Text(
+                                          subject.name ?? 'بدون اسم',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) =>
+                                        _selectedSubjectToDeleteNotifier.value =
+                                            value,
+                                    validator: (value) => value == null
+                                        ? 'يرجى اختيار المادة'
+                                        : null,
+                                  );
+                                },
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+                              AdminSubmitButton(
+                                title: 'حذف المادة نهائياً',
+                                isDestructive: true,
+                                onPressed: () {
+                                  if (_deleteSubjectFormKey.currentState!
+                                      .validate()) {
+                                    if (context.mounted) {
+                                      context
+                                          .read<SubjectCubit>()
+                                          .deleteSubject(
+                                            _selectedSubjectToDeleteNotifier
+                                                .value!,
+                                          );
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
                       SizedBox(height: screenHeight * 0.05),
                     ],
                   ),
                 ),
 
+                // مؤشر التحميل العام
                 if (isLoading)
                   Container(
                     color: Colors.black.withOpacity(0.4),
