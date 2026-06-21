@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/shares/subjects/data/api_Service/subject_api_service.dart';
+import 'package:bluebits_app/core/shares/subjects/data/models/subjects_by_year_semester.dart';
 import 'package:bluebits_app/core/shares/subjects/data/models/subjects_models.dart';
 
 class SubjectRepository {
@@ -113,7 +114,7 @@ class SubjectRepository {
   // ==========================================
   // 8. جلب المواد حسب السنة والفصل (Get By Year And Semester)
   // ==========================================
-  Future<SubjectModel> getSubjectsByYearAndSemester({
+  Future<SubjectsByYearSemester> getSubjectsByYearAndSemester({
     required String token,
     required String yearId,
     required String semesterId,
@@ -126,6 +127,6 @@ class SubjectRepository {
     print('-------------------------------------------');
     print('repo getSubjectsByYearAndSemester: $response');
     print('-------------------------------------------');
-    return SubjectModel.fromJson(response);
+    return SubjectsByYearSemester.fromJson(response);
   }
 }

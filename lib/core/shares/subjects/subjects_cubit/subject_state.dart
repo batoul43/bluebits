@@ -14,6 +14,11 @@ class GetSubjectsSuccess extends SubjectState {
   GetSubjectsSuccess(this.subjectModel);
 }
 
+class GetSubjectsByYearAnsSemester extends SubjectState {
+  final SubjectsByYearSemester subjectsByYearSemester;
+  GetSubjectsByYearAnsSemester(this.subjectsByYearSemester);
+}
+
 class GetSubjectsFailure extends SubjectState {
   final String errorMessage;
   GetSubjectsFailure(this.errorMessage);

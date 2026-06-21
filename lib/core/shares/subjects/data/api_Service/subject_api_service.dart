@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class SubjectApiService {
-  final String baseUrl = "http://bluebits24.onrender.com/api/v1.0.0/subjects";
+  final String baseUrl = "https://bluebits24.onrender.com/api/v1.0.0/subjects";
 
   // ==========================================
   // 1. إنشاء مادة جديدة (Create)
@@ -188,12 +188,20 @@ class SubjectApiService {
   ) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/year/$yearId/semester/$semesterId'),
+        Uri.parse('$baseUrl/year/${yearId}/semester/${semesterId}'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
+      print('-----------------------------------');
+      print('subjectApi: ${response.body}');
+      print('-----------------------------------');
+      print('yearid: ${yearId}');
+      print('-----------------------------------');
+      print('semesterid: ${semesterId}');
+      print('-----------------------------------');
+      print('subjectApi: ${response.body}');
 
       return jsonDecode(response.body);
     } catch (e) {

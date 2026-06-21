@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
+import 'package:bluebits_app/core/shares/subjects/data/models/subjects_by_year_semester.dart';
 import 'package:bluebits_app/core/shares/subjects/data/models/subjects_models.dart';
 import 'package:bluebits_app/core/shares/subjects/data/repositry/subjects_repositry.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -182,7 +183,7 @@ class SubjectCubit extends Cubit<SubjectState> {
       );
 
       if (response.isSuccess == true) {
-        emit(GetSubjectsSuccess(response));
+        emit(GetSubjectsByYearAnsSemester(response));
       } else {
         emit(
           GetSubjectsFailure(response.message ?? 'فشل في جلب المواد المطلوبة'),

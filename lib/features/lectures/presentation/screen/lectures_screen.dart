@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
+import 'package:bluebits_app/core/shares/subjects/data/models/subjects_by_year_semester.dart';
 import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
@@ -12,8 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LecturesScreen extends StatelessWidget {
-  const LecturesScreen({super.key});
-
+  LecturesScreen({super.key});
+  String yearId = '';
+  String semesterId = '';
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -99,20 +101,21 @@ class LecturesScreen extends StatelessWidget {
     if (state is DisplayYears || state is LecturesInitial) {
       return BlocBuilder<YearCubit, YearState>(
         builder: (context, yearState) {
-          if (yearState is YearLoading)
+          if (yearState is YearLoading) {
             return const Center(child: CircularProgressIndicator());
-          if (yearState is YearError)
+          }
+          if (yearState is YearError) {
             return Center(
               child: Text(
                 yearState.message,
                 style: const TextStyle(color: Colors.red),
               ),
             );
-
+          }
           if (yearState is YearLoaded) {
-            if (yearState.years.isEmpty)
+            if (yearState.years.isEmpty) {
               return const Center(child: Text("لا توجد سنوات دراسية"));
-
+            }
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -131,6 +134,7 @@ class LecturesScreen extends StatelessWidget {
                     context.read<LecturesCubit>().displaySemesters(
                       yearItem.name ?? "",
                     );
+                    yearId = yearItem.sId ?? "";
                     context.read<SemesterCubit>().fetchAllSemesters();
                   },
                 );
@@ -167,8 +171,9 @@ class LecturesScreen extends StatelessWidget {
         if (state is DisplaySemesters)
           BlocBuilder<SemesterCubit, SemesterState>(
             builder: (context, semesterState) {
-              if (semesterState is SemesterLoading)
+              if (semesterState is SemesterLoading) {
                 return const Center(child: CircularProgressIndicator());
+              }
               if (semesterState is SemesterLoaded) {
                 return Column(
                   children: semesterState.semesters.map((item) {
@@ -177,21 +182,20 @@ class LecturesScreen extends StatelessWidget {
                       year: state.selectedYear,
                       onTap: () async {
                         // --- تصحيح: استخدام البحث الآمن لتجنب الانهيار (Crash) ---
-                        final currentYearState = context
-                            .read<YearCubit>()
-                            .state;
-                        String yearId = "";
+                        // final currentYearState = context
+                        //     .read<YearCubit>()
+                        //     .state;
 
-                        if (currentYearState is YearLoaded) {
-                          // نستخدم firstWhere مع orElse لإرجاع null بدلاً من عمل Crash
-                          final matchedYear = currentYearState.years.firstWhere(
-                            (y) => y.name == state.selectedYear,
-                            orElse: () => currentYearState
-                                .years
-                                .first, // كخيار احتياطي أو معالجة خطأ
-                          );
-                          yearId = matchedYear.sId ?? "";
-                        }
+                        // if (currentYearState is YearLoaded) {
+                        //   // نستخدم firstWhere مع orElse لإرجاع null بدلاً من عمل Crash
+                        //   final matchedYear = currentYearState.years.firstWhere(
+                        //     (y) => y.name == state.selectedYear,
+                        //     orElse: () => currentYearState
+                        //         .years
+                        //         .first, // كخيار احتياطي أو معالجة خطأ
+                        //   );
+                        //   yearId = matchedYear.sId ?? "";
+                        // }
 
                         if (yearId.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -203,6 +207,7 @@ class LecturesScreen extends StatelessWidget {
                         }
 
                         if (context.mounted) {
+                          semesterId = item.id ?? "";
                           context
                               .read<SubjectCubit>()
                               .getSubjectsByYearAndSemester(
@@ -228,12 +233,13 @@ class LecturesScreen extends StatelessWidget {
         if (state is DisplaySubjects)
           BlocBuilder<SubjectCubit, SubjectState>(
             builder: (context, subjectState) {
-              if (subjectState is GetSubjectsLoading)
+              if (subjectState is GetSubjectsLoading) {
                 return const Padding(
                   padding: EdgeInsets.all(20.0),
                   child: Center(child: CircularProgressIndicator()),
                 );
-              if (subjectState is GetSubjectsFailure)
+              }
+              if (subjectState is GetSubjectsFailure) {
                 return Padding(
                   padding: EdgeInsets.all(20.0),
                   child: Center(
@@ -243,15 +249,16 @@ class LecturesScreen extends StatelessWidget {
                     ),
                   ),
                 );
-
-              if (subjectState is GetSubjectsSuccess) {
-                final subjectsList = subjectState.subjectModel.data ?? [];
-                if (subjectsList.isEmpty)
+              }
+              if (subjectState is GetSubjectsByYearAnsSemester) {
+                final subjectsList =
+                    subjectState.subjectsByYearSemester.data?.subjects ?? [];
+                if (subjectsList.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.all(20.0),
                     child: Center(child: Text("لا توجد مواد مضافة")),
                   );
-
+                }
                 return ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
