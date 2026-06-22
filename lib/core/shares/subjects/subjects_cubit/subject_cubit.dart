@@ -145,7 +145,7 @@ class SubjectCubit extends Cubit<SubjectState> {
       final response = await repository.getSubjectsByYear(token, yearId);
 
       if (response.isSuccess == true) {
-        emit(GetSubjectsSuccess(response));
+        emit(GetSubjectsByYearAnsSemester(response));
       } else {
         emit(GetSubjectsFailure(response.message ?? 'فشل في جلب مواد السنة'));
       }

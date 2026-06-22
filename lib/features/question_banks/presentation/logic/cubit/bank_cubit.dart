@@ -20,9 +20,8 @@ class BankCubit extends Cubit<BankState> {
 
   void displaySubjects(String year) {
     emit(BankLoading());
-    // Replace with actual subjects for the selected year
-    List subjects = ['Subject 1', 'Subject 2', 'Subject 3'];
-    emit(BankSubject(year, subjects));
+    // تمرير قائمة فارغة - البيانات ستأتي من SubjectCubit عبر API
+    emit(BankSubject(year, []));
   }
 
   void displayQuestion(String year, String subject) {

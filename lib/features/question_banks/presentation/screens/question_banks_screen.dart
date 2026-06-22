@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
@@ -7,12 +8,8 @@ import 'package:bluebits_app/features/question_banks/presentation/widget/questio
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// الرجاء استدعاء الـ YearCubit والـ YearState هنا بحسب مسارهما في مشروعك
-// import 'package:bluebits_app/core/shared/years/presentation/logic/year_cubit.dart';
-// import 'package:bluebits_app/core/shared/years/presentation/logic/year_state.dart';
-
 class QuestionBanksScreen extends StatelessWidget {
-  const QuestionBanksScreen({super.key});
+  QuestionBanksScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +68,6 @@ class QuestionBanksScreen extends StatelessWidget {
                                 );
                               } else if (yearState is YearLoaded) {
                                 final yearsList = yearState.years;
-
                                 if (yearsList.isEmpty) {
                                   return const Center(
                                     child: Padding(
@@ -101,7 +97,11 @@ class QuestionBanksScreen extends StatelessWidget {
                                     return YearCard(
                                       title: yearItem.name ?? "بدون اسم",
                                       onTap: () {
-                                        // إرسال اسم السنة المحددة إلى BankCubit
+                                        final selectedYearId = yearItem.sId!;
+                                        context
+                                            .read<SubjectCubit>()
+                                            .getSubjectsByYear(selectedYearId);
+                                        // إرسال السنة المحددة إلى BankCubit
                                         context
                                             .read<BankCubit>()
                                             .displaySubjects(
@@ -133,18 +133,29 @@ class QuestionBanksScreen extends StatelessWidget {
                                 ),
                               ),
                               state is BankSubject
-                                  ? state.subjects.isEmpty
-                                        ? const Center(
-                                            child: Text(
-                                              "لا تتوفر بنوك لهذه السنة حاليا",
-                                            ),
-                                          )
-                                        : ListView.builder(
+                                  ? BlocBuilder<SubjectCubit, SubjectState>(
+                                      builder: (context, subjectState) {
+                                        if (subjectState
+                                            is GetSubjectsByYearAnsSemester) {
+                                          final subjects = subjectState
+                                              .subjectsByYearSemester
+                                              .data
+                                              ?.subjects;
+                                          if (subjects == null ||
+                                              subjects.isEmpty) {
+                                            return const Center(
+                                              child: Text(
+                                                "لا توجد مواد لهذه السنة حالياً",
+                                              ),
+                                            );
+                                          }
+                                          return ListView.builder(
                                             shrinkWrap: true,
                                             physics:
                                                 const NeverScrollableScrollPhysics(),
-                                            itemCount: state.subjects.length,
+                                            itemCount: subjects.length,
                                             itemBuilder: (context, index) {
+                                              final subject = subjects[index];
                                               return SubjectCard(
                                                 isbank: true,
                                                 onTap: () {
@@ -152,17 +163,39 @@ class QuestionBanksScreen extends StatelessWidget {
                                                       .read<BankCubit>()
                                                       .displayQuestion(
                                                         state.selectedYear,
-                                                        state.subjects[index],
+                                                        subject.name ?? "",
                                                       );
                                                 },
                                                 year: state.selectedYear,
-                                                title: state.subjects[index],
+                                                title:
+                                                    subject.name ?? "بدون اسم",
                                                 icon: const Icon(
                                                   Icons.question_answer,
                                                 ),
                                               );
                                             },
-                                          )
+                                          );
+                                        } else if (subjectState
+                                            is GetSubjectsLoading) {
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        } else if (subjectState
+                                            is GetSubjectsFailure) {
+                                          return Center(
+                                            child: Text(
+                                              subjectState.errorMessage,
+                                              style: TextStyle(
+                                                color: theme.colorScheme.error,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        return const Center(
+                                          child: Text("لا توجد مواد مطبقة"),
+                                        );
+                                      },
+                                    )
                                   : state is BankQuestion
                                   ? QuestionCard(questions: state.questions)
                                   : const SizedBox(),

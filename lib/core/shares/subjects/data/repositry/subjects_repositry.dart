@@ -89,12 +89,15 @@ class SubjectRepository {
   // ==========================================
   // 6. جلب المواد حسب السنة (Get By Year)
   // ==========================================
-  Future<SubjectModel> getSubjectsByYear(String token, String yearId) async {
+  Future<SubjectsByYearSemester> getSubjectsByYear(
+    String token,
+    String yearId,
+  ) async {
     final response = await apiService.getSubjectsByYear(token, yearId);
     print('-------------------------------------------');
     print('repo getSubjectsByYear: $response');
     print('-------------------------------------------');
-    return SubjectModel.fromJson(response);
+    return SubjectsByYearSemester.fromJson(response);
   }
 
   // ==========================================
