@@ -2,10 +2,10 @@ import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_
 import 'package:bluebits_app/core/shares/lessonslacture/data/models/lesson_lecture_models.dart';
 import 'package:http/http.dart' as http;
 
-class LessonLectureRepositry {
+class LessonLectureRepository {
   final LessonLectureApiService apiService;
 
-  LessonLectureRepositry(this.apiService);
+  LessonLectureRepository(this.apiService);
 
   Future<LessonLectureModels> getAllLectures(String token) async {
     final response = await apiService.getAllLectures(token);

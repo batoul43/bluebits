@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import 'package:bluebits_app/core/constant/constant.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/core/theming/app_theme.dart';
+import 'package:bluebits_app/core/theming/colors.dart'; // تم استدعاء ملف الألوان
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
 import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
@@ -18,7 +19,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // await CachHelper.clearAll();
-  isopen = bool.parse(await CachHelper.getValue('isopen') ?? false.toString());
+
+  // تعديل بسيط لمنع الخطأ في تحويل النص
+  isopen = bool.parse(await CachHelper.getValue('isopen') ?? 'false');
 
   runApp(
     MultiBlocProvider(
@@ -45,9 +48,11 @@ class _MainAppState extends State<MainApp> {
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   late AppLinks _applinks;
   StreamSubscription<Uri>? _linkSubscription;
+
   @override
   void initState() {
     super.initState();
+    initDeepLinks(); // إضافة هذا الاستدعاء الضروري لعمل الروابط
   }
 
   void initDeepLinks() {
@@ -82,10 +87,11 @@ class _MainAppState extends State<MainApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey, // تم ربط المفتاح للتحكم بالمسارات
       debugShowCheckedModeBanner: false,
-      locale: Locale('ar'),
-      supportedLocales: [Locale('ar')],
-      localizationsDelegates: [
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar')],
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -102,18 +108,68 @@ class _MainAppState extends State<MainApp> {
           } else if (state is Unauthenticated) {
             return SigninScreen();
           } else if (state is AuthFailed) {
+            // إضافة Scaffold لتجنب أخطاء المساحة وتنسيق الشاشة
             return Scaffold(
               body: Center(
-                child: TextButton(
-                  onPressed: () {
-                    context.read<AuthCubit>().checkAuthStatus();
-                  },
-                  child: Text('Authentication failed. Please try again.'),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: ColorsManager.redaccent,
+                        size: 60,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'فشل في المصادقة، يرجى المحاولة مرة أخرى.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: ColorsManager.blueText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            context.read<AuthCubit>().checkAuthStatus();
+                          },
+                          // زر مصمم باحترافية باستخدام ثيم التطبيق
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ColorsManager.blue,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'إعادة المحاولة',
+                            style: TextStyle(
+                              color: ColorsManager.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           } else {
-            return Center(child: CircularProgressIndicator());
+            // تغليف مؤشر التحميل بـ Scaffold لضمان احترام الـ SafeArea والثيم
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(
+                  color: ColorsManager.blue, // استخدام اللون الأساسي للتطبيق
+                ),
+              ),
+            );
           }
         },
       ),

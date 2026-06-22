@@ -1,17 +1,17 @@
 import 'package:bluebits_app/core/shares/lessonslacture/data/models/lesson_lecture_models.dart';
-import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repositry.dart';
+import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:bluebits_app/core/helpers/cachhelper.dart'; // مسار الـ CacheHelper الخاص بكِ
+import 'package:bluebits_app/core/helpers/cachhelper.dart';
 
 part 'lesson_lecture_state.dart';
 
 class LessonLectureCubit extends Cubit<LessonLectureState> {
-  final LessonLectureRepositry repository;
+  final LessonLectureRepository repository; // تم تصحيح الاسم هنا أيضاً
 
   LessonLectureCubit({required this.repository})
     : super(LessonLectureInitial());
 
-  // 1. جلب كل المحاضرات (يجلب التوكن داخلياً من الـ Cache)
+  // 1. جلب كل المحاضرات
   Future<void> fetchAllLectures() async {
     emit(LessonLectureLoading());
     try {
@@ -22,7 +22,8 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
       print('-------------------------------------------');
 
       if (lectureModel.isSuccess == true) {
-        emit(LessonLecturesLoaded(lectureModel.data ?? []));
+        // تم الإصلاح: يجب الوصول إلى قائمة lectures بداخل data
+        emit(LessonLecturesLoaded(lectureModel.data?.lectures ?? []));
       } else {
         emit(
           LessonLectureError(lectureModel.message ?? 'فشل في جلب المحاضرات'),
@@ -33,7 +34,7 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
     }
   }
 
-  // 2. رفع محاضرة (يستقبل الـ token كمعامل ترتيب مثل createYear)
+  // 2. رفع محاضرة
   Future<void> uploadLecture(
     String token,
     String title,
@@ -61,7 +62,7 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
             lectureModel.message ?? 'تم رفع المحاضرة بنجاح',
           ),
         );
-        fetchAllLectures(); // تحديث تلقائي للقائمة
+        fetchAllLectures();
       } else {
         emit(LessonLectureError(lectureModel.message ?? 'فشل في رفع المحاضرة'));
       }
@@ -77,26 +78,26 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
       final lectureModel = await repository.getLectureById(lectureId);
 
       if (lectureModel.isSuccess == true) {
-        if (lectureModel.data != null &&
-            lectureModel.data is List &&
-            (lectureModel.data as List).isNotEmpty) {
-          emit(LectureDetailLoaded((lectureModel.data as List).first));
-        } else if (lectureModel.data is Data) {
-          emit(LectureDetailLoaded(lectureModel.data as Data));
+        // تم الإصلاح: التحقق من وجود القائمة داخل data
+        if (lectureModel.data?.lectures != null &&
+            lectureModel.data!.lectures!.isNotEmpty) {
+          emit(LessonLectureDetailLoaded(lectureModel.data!.lectures!.first));
         } else {
-          emit(LectureError('بيانات المحاضرة غير صالحة'));
+          emit(LessonLectureError('بيانات المحاضرة غير صالحة'));
         }
       } else {
         emit(
-          LectureError(lectureModel.message ?? 'فشل في جلب تفاصيل المحاضرة'),
+          LessonLectureError(
+            lectureModel.message ?? 'فشل في جلب تفاصيل المحاضرة',
+          ),
         );
       }
     } catch (e) {
-      emit(LectureError('حدث خطأ في الاتصال: ${e.toString()}'));
+      emit(LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'));
     }
   }
 
-  // 4. تحديث محاضرة (يستقبل الـ token كمعامل ترتيب مثل updateYear)
+  // 4. تحديث محاضرة
   Future<void> updateLecture(
     String token,
     String lectureId,
@@ -104,7 +105,7 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
     String? description,
     String? filePath,
   ) async {
-    emit(LectureLoading());
+    emit(LessonLectureLoading()); // تم الإصلاح
     try {
       final lectureModel = await repository.updateLecture(
         token,
@@ -116,35 +117,45 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
 
       if (lectureModel.isSuccess == true) {
         emit(
-          LectureActionSuccess(
+          LessonLectureActionSuccess(
             lectureModel.message ?? 'تم تحديث المحاضرة بنجاح',
           ),
-        );
+        ); // تم الإصلاح
         fetchAllLectures();
       } else {
-        emit(LectureError(lectureModel.message ?? 'فشل في تحديث المحاضرة'));
+        emit(
+          LessonLectureError(lectureModel.message ?? 'فشل في تحديث المحاضرة'),
+        ); // تم الإصلاح
       }
     } catch (e) {
-      emit(LectureError('حدث خطأ في الاتصال: ${e.toString()}'));
+      emit(
+        LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'),
+      ); // تم الإصلاح
     }
   }
 
-  // 5. حذف محاضرة (يستقبل الـ token كمعامل ترتيب مثل deleteYear)
+  // 5. حذف محاضرة
   Future<void> deleteLecture(String token, String lectureId) async {
-    emit(LectureLoading());
+    emit(LessonLectureLoading()); // تم الإصلاح
     try {
       final lectureModel = await repository.deleteLecture(token, lectureId);
 
       if (lectureModel.isSuccess == true) {
         emit(
-          LectureActionSuccess(lectureModel.message ?? 'تم حذف المحاضرة بنجاح'),
-        );
+          LessonLectureActionSuccess(
+            lectureModel.message ?? 'تم حذف المحاضرة بنجاح',
+          ),
+        ); // تم الإصلاح
         fetchAllLectures();
       } else {
-        emit(LectureError(lectureModel.message ?? 'فشل في حذف المحاضرة'));
+        emit(
+          LessonLectureError(lectureModel.message ?? 'فشل في حذف المحاضرة'),
+        ); // تم الإصلاح
       }
     } catch (e) {
-      emit(LectureError('حدث خطأ في الاتصال: ${e.toString()}'));
+      emit(
+        LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'),
+      ); // تم الإصلاح
     }
   }
 
@@ -154,7 +165,7 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
     String subjectId,
     String type,
   ) async {
-    emit(LectureLoading());
+    emit(LessonLectureLoading()); // تم الإصلاح
     try {
       final lectureModel = await repository.getLecturesByType(
         token,
@@ -163,40 +174,51 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
       );
 
       if (lectureModel.isSuccess == true) {
-        emit(LecturesLoaded(lectureModel.data ?? []));
+        // تم الإصلاح: الوصول إلى قائمة lectures
+        emit(LessonLecturesLoaded(lectureModel.data?.lectures ?? []));
       } else {
-        emit(LectureError(lectureModel.message ?? 'فشل في فلترة المحاضرات'));
+        emit(
+          LessonLectureError(lectureModel.message ?? 'فشل في فلترة المحاضرات'),
+        ); // تم الإصلاح
       }
     } catch (e) {
-      emit(LectureError('حدث خطأ في الاتصال: ${e.toString()}'));
+      emit(
+        LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'),
+      ); // تم الإصلاح
     }
   }
 
   // 7. الفلترة المتقدمة
-  Future<void> fetchLecturesAdvancedFilter(
+  Future<void> fetchLecturesByYearSemesterSubjectType(
     String token,
     String yearId,
     String semesterId,
     String subjectId,
     String type,
   ) async {
-    emit(LectureLoading());
+    emit(LessonLectureLoading()); // تم الإصلاح
     try {
-      final lectureModel = await repository.getLecturesAdvancedFilter(
-        token,
-        yearId,
-        semesterId,
-        subjectId,
-        type,
-      );
+      final lectureModel = await repository
+          .getLecturesByYearSemesterSubjectType(
+            token,
+            yearId,
+            semesterId,
+            subjectId,
+            type,
+          );
 
       if (lectureModel.isSuccess == true) {
-        emit(LecturesLoaded(lectureModel.data ?? []));
+        // تم الإصلاح: الوصول إلى قائمة lectures
+        emit(LessonLecturesLoaded(lectureModel.data?.lectures ?? []));
       } else {
-        emit(LectureError(lectureModel.message ?? 'فشل في الفلترة المتقدمة'));
+        emit(
+          LessonLectureError(lectureModel.message ?? 'فشل في الفلترة المتقدمة'),
+        ); // تم الإصلاح
       }
     } catch (e) {
-      emit(LectureError('حدث خطأ في الاتصال: ${e.toString()}'));
+      emit(
+        LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'),
+      ); // تم الإصلاح
     }
   }
 }

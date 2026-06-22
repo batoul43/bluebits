@@ -6,7 +6,6 @@ class LessonLectureInitial extends LessonLectureState {}
 
 class LessonLectureLoading extends LessonLectureState {}
 
-// تم التعديل إلى List<Data> لتطابق ملف الـ Years تماماً
 class LessonLecturesLoaded extends LessonLectureState {
   final List<Data> lessonLectures;
   LessonLecturesLoaded(this.lessonLectures);

@@ -1,3 +1,6 @@
+import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_lecture_api_service.dart';
+import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
+import 'package:bluebits_app/core/shares/lessonslacture/lessonlecturecubit/lesson_lecture_cubit.dart';
 import 'package:bluebits_app/core/shares/semester/data/api_service/semester_api_service.dart';
 import 'package:bluebits_app/core/shares/semester/data/repositry/semester_repositry.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
@@ -52,7 +55,7 @@ class _LayoutAppState extends State<LayoutApp> {
     _pages = [
       HomeScreen(),
       BlocProvider(
-        create: (context) => LecturesCubit()..backTOYear(),
+        create: (context) => LecturesCubit()..backToYears(),
         child: LecturesScreen(),
       ),
       BlocProvider(
@@ -111,6 +114,11 @@ class _LayoutAppState extends State<LayoutApp> {
           BlocProvider(
             create: (context) =>
                 SubjectCubit(SubjectRepository(SubjectApiService())),
+          ),
+          BlocProvider(
+            create: (context) => LessonLectureCubit(
+              repository: LessonLectureRepository(LessonLectureApiService()),
+            ),
           ),
         ],
         child: Scaffold(

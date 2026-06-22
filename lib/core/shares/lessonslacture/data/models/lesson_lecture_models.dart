@@ -40,7 +40,6 @@ class LectureResponseData {
   }
 }
 
-// تم تسميته Data ليتوافق مع الـ State (List<Data> lectures) الخاصة بكِ
 class Data {
   String? id;
   String? title;
