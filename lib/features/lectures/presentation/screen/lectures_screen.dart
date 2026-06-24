@@ -140,8 +140,9 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   String _getPageTitle(LecturesState state) {
-    if (state is DisplayYears || state is LecturesInitial)
+    if (state is DisplayYears || state is LecturesInitial) {
       return "مستودع المحاضرات";
+    }
     if (state is DisplaySemesters) return state.selectedYear;
     if (state is DisplaySubjects) return state.selectedSemester;
     if (state is DisplayTypes) return state.selectedSubject;
@@ -152,13 +153,15 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   String _getPageSubtitle(LecturesState state) {
-    if (state is DisplayYears || state is LecturesInitial)
+    if (state is DisplayYears || state is LecturesInitial) {
       return "تصفح وحمل المحاضرات الأكاديمية المنظمة";
+    }
     if (state is DisplaySemesters) return 'اختر الفصل الدراسي';
     if (state is DisplaySubjects) return "اختر المادة المطلوبة";
     if (state is DisplayTypes) return "حدد نوع المحاضرات";
-    if (state is DisplayLecturesList)
+    if (state is DisplayLecturesList) {
       return "قائمة المحاضرات المتاحة للتحميل والقراءة";
+    }
     return "";
   }
 
@@ -412,7 +415,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     context,
                     title: "المحاضرات العملية",
                     icon: Icons.biotech_rounded,
-                    color: ColorsManager.green, // من ملف الألوان الخاص بك
+                    color: ColorsManager.green,
                     onTap: () async {
                       setState(() {
                         _selectedType = 'practical';
@@ -427,7 +430,17 @@ class _LecturesScreenState extends State<LecturesScreen> {
 
         // === 5. عرض قائمة المحاضرات النهائية ===
         if (state is DisplayLecturesList)
-          BlocBuilder<LessonLectureCubit, LessonLectureState>(
+          // تغيير BlocBuilder إلى BlocConsumer للتمكن من إظهار التنبيهات (Snackbars) بنجاح/فشل التحميل
+          BlocConsumer<LessonLectureCubit, LessonLectureState>(
+            listener: (context, lectureState) {
+              if (lectureState is LessonLectureActionSuccess) {
+                // إظهار رسالة النجاح عند اكتمال التحميل
+                _showSnackBar(lectureState.message, ColorsManager.green);
+              } else if (lectureState is LessonLectureError) {
+                // إظهار رسالة الخطأ في حال فشل التحميل أو الجلب
+                _showSnackBar(lectureState.message, ColorsManager.redaccent);
+              }
+            },
             builder: (context, lectureState) {
               if (lectureState is LessonLectureLoading) {
                 return Center(
@@ -439,17 +452,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                   ),
                 );
               }
-              if (lectureState is LessonLectureError) {
-                return Center(
-                  child: Text(
-                    lectureState.message,
-                    style: TextStyle(
-                      color: theme.colorScheme.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              }
+
               if (lectureState is LessonLecturesLoaded) {
                 final lectures = lectureState.lessonLectures;
                 if (lectures.isEmpty) {
@@ -486,8 +489,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                           color: ColorsManager.blueGrey.withOpacity(0.2),
                         ),
                       ),
-                      color: theme
-                          .scaffoldBackgroundColor, // استخدام لون خلفية الثيم الداخلي
+                      color: theme.scaffoldBackgroundColor,
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -524,14 +526,13 @@ class _LecturesScreenState extends State<LecturesScreen> {
                                   lecture.description!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: ColorsManager.greyText,
                                     fontSize: 13,
                                   ),
                                 ),
                               const SizedBox(height: 8),
 
-                              // تم استخدام Wrap لضمان عدم حدوث طفح بالشاشة (Overflow) لو زاد حجم النص
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 4,
@@ -573,17 +574,47 @@ class _LecturesScreenState extends State<LecturesScreen> {
                             ],
                           ),
                         ),
-                        trailing: Icon(
-                          Icons.arrow_circle_left_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 30,
+                        // تعديل الـ trailing ليحتوي على زر التحميل وزر السهم
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // زر التحميل المربوط بالـ Cubit
+                            IconButton(
+                              onPressed: () {
+                                if (lecture.id != null) {
+                                  context
+                                      .read<LessonLectureCubit>()
+                                      .downloadLectureToDevice(
+                                        lecture.id!,
+                                        lectures,
+                                      );
+                                } else {
+                                  _showSnackBar(
+                                    "لا يمكن تحميل المحاضرة لعدم توفر المعرف",
+                                    ColorsManager.redaccent,
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.download_rounded),
+                              color: ColorsManager.green,
+                              tooltip: 'تحميل المحاضرة',
+                            ),
+                            // أيقونة السهم الجمالية
+                            Icon(
+                              Icons.arrow_circle_left_rounded,
+                              color: theme.colorScheme.primary,
+                              size: 30,
+                            ),
+                          ],
                         ),
+                        // الضغط على البطاقة لفتح الرابط
                         onTap: () => _openLectureUrl(lecture.fileUrl),
                       ),
                     );
                   },
                 );
               }
+              // إرجاع واجهة فارغة في حالة Initial أو إذا لم يتم معالجة حالة معينة
               return const SizedBox.shrink();
             },
           ),

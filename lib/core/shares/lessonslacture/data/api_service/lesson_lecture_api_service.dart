@@ -115,7 +115,7 @@ class LessonLectureApiService {
     }
   }
 
-  Future<http.Response> downloadLectureFile(
+  Future<Map<String, dynamic>> downloadLectureFile(
     String token,
     String lectureId,
   ) async {
@@ -124,7 +124,7 @@ class LessonLectureApiService {
         Uri.parse('$baseUrl/$lectureId/download'),
         headers: {'Authorization': 'Bearer $token'},
       );
-      return response;
+      return jsonDecode(response.body);
     } catch (e) {
       throw Exception('خطأ في التحميل: $e');
     }

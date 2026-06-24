@@ -1,7 +1,13 @@
+import 'dart:io';
+
 import 'package:bluebits_app/core/shares/lessonslacture/data/models/lesson_lecture_models.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 part 'lesson_lecture_state.dart';
 
@@ -220,5 +226,138 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
         LessonLectureError('حدث خطأ في الاتصال: ${e.toString()}'),
       ); // تم الإصلاح
     }
+  }
+
+  // 8. تحميل المحاضرة إلى مساحة تخزين الجهاز (الجديدة)
+  // ========================================================
+  Future<void> downloadLectureToDevice(
+    String lectureId,
+    List<Data> currentLectures,
+  ) async {
+    emit(LessonLectureLoading());
+
+    try {
+      // 1. التعامل الذكي مع صلاحيات التخزين حسب إصدار Android
+      bool hasPermission = await _requestStoragePermission();
+
+      if (!hasPermission) {
+        emit(LessonLectureError('يجب الموافقة على صلاحية التخزين لحفظ الملف'));
+        emit(LessonLecturesLoaded(currentLectures));
+        return;
+      }
+
+      final token = await CachHelper.getValue('Token') ?? '';
+
+      // 2. الحصول على رابط التحميل
+      final model = await repository.downloadLectureFile(token, lectureId);
+
+      if (model.statusCode == 200 && model.downloadData != null) {
+        final downloadUrl = model.downloadData!.downloadUrl!;
+        final title = model.downloadData!.title ?? "lecture";
+        final fileType = model.downloadData!.fileType ?? "application/pdf";
+        final extension = fileType.contains('/')
+            ? fileType.split('/').last
+            : 'pdf';
+
+        // 3. التحميل
+        final response = await http.get(Uri.parse(downloadUrl));
+
+        if (response.statusCode == 200) {
+          // 4. الحصول على مسار التحميل المضمون
+          Directory? downloadDirectory;
+          if (Platform.isAndroid) {
+            // مجلد التنزيلات العام في أندرويد
+            downloadDirectory = Directory('/storage/emulated/0/Download');
+            if (!await downloadDirectory.exists()) {
+              // مسار بديل إذا لم يكن المجلد موجودًا
+              downloadDirectory = await getExternalStorageDirectory();
+            }
+          } else if (Platform.isIOS) {
+            // مسار المستندات في الايفون
+            downloadDirectory = await getApplicationDocumentsDirectory();
+          }
+
+          if (downloadDirectory == null) {
+            emit(LessonLectureError('لم يتم العثور على مسار لحفظ الملف'));
+            emit(LessonLecturesLoaded(currentLectures));
+            return;
+          }
+
+          // تنظيف الاسم من الرموز غير المسموحة في أسماء الملفات
+          final safeFileName = title
+              .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_')
+              .trim();
+
+          final filePath =
+              '${downloadDirectory.path}/${safeFileName}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+          // 5. حفظ الملف
+          final file = File(filePath);
+          await file.writeAsBytes(response.bodyBytes);
+
+          emit(
+            LessonLectureActionSuccess('تم تحميل الملف بنجاح: $safeFileName'),
+          );
+          emit(LessonLecturesLoaded(currentLectures));
+        } else {
+          emit(
+            LessonLectureError(
+              'فشل تحميل الملف. الكود: ${response.statusCode}',
+            ),
+          );
+          emit(LessonLecturesLoaded(currentLectures));
+        }
+      } else {
+        emit(LessonLectureError(model.message ?? 'فشل الحصول على الرابط'));
+        emit(LessonLecturesLoaded(currentLectures));
+      }
+    } catch (e) {
+      emit(LessonLectureError('خطأ أثناء التنزيل: ${e.toString()}'));
+      emit(LessonLecturesLoaded(currentLectures));
+    }
+  }
+
+  // دالة مساعدة لطلب الصلاحيات بذكاء
+  Future<bool> _requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+
+      // Android 13 وما فوق (API level 33+)
+      if (androidInfo.version.sdkInt >= 33) {
+        // في Android 13+ لا توجد صلاحية WRITE_EXTERNAL_STORAGE عامة
+        // للملفات العادية (مثل PDF) لا نحتاج صلاحية للتحميل في مجلد Download!
+        // ولكن للحيطة يمكن طلب الصلاحيات التالية إذا كنا نتعامل مع صور/فيديو
+        // var photos = await Permission.photos.request();
+        // return photos.isGranted;
+
+        // ببساطة، نرجع true لأننا نملك صلاحية الكتابة في مسار التحميلات ضمناً
+        return true;
+      }
+      // Android 10, 11, 12
+      else if (androidInfo.version.sdkInt >= 29) {
+        var status = await Permission.storage.request();
+        if (status.isPermanentlyDenied) {
+          await openAppSettings();
+          return false;
+        }
+        // في Android 11+، قد نطلب Manage External Storage إذا لزم الأمر
+        if (!status.isGranted) {
+          var manageStatus = await Permission.manageExternalStorage.request();
+          return manageStatus.isGranted;
+        }
+        return status.isGranted;
+      }
+      // Android 9 وما دون
+      else {
+        var status = await Permission.storage.request();
+        return status.isGranted;
+      }
+    } else if (Platform.isIOS) {
+      // iOS
+      var status = await Permission.storage.request();
+      return status.isGranted;
+    }
+    return false;
   }
 }

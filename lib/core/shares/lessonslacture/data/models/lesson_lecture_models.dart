@@ -2,22 +2,53 @@ class LessonLectureModels {
   bool? isSuccess;
   String? message;
   int? statusCode;
+
+  // المتغير القديم للقوائم
   LectureResponseData? data;
+  // المتغير الجديد المخصص لمعلومات التحميل فقط
+  DownloadLectureData? downloadData;
 
   LessonLectureModels({
     this.isSuccess,
     this.message,
     this.statusCode,
     this.data,
+    this.downloadData,
   });
 
   LessonLectureModels.fromJson(Map<String, dynamic> json) {
     isSuccess = json['isSuccess'];
     message = json['message'];
     statusCode = json['statusCode'];
-    data = json['data'] != null
-        ? LectureResponseData.fromJson(json['data'])
-        : null;
+
+    if (json['data'] != null) {
+      // الفحص الذكي: إذا احتوى الـ JSON على رابط تحميل، نعينه للمتغير الجديد
+      if (json['data'] is Map<String, dynamic> &&
+          json['data'].containsKey('downloadUrl')) {
+        downloadData = DownloadLectureData.fromJson(json['data']);
+      }
+      // غير ذلك، فهو الاستجابة الطبيعية التي تجلب قائمة المحاضرات
+      else {
+        data = LectureResponseData.fromJson(json['data']);
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------
+// الكلاس الجديد (صغير جداً ولا يكرر الحقول الخارجية)
+// ----------------------------------------------------
+class DownloadLectureData {
+  String? downloadUrl;
+  String? title;
+  String? fileType;
+  int? fileSize;
+
+  DownloadLectureData.fromJson(Map<String, dynamic> json) {
+    downloadUrl = json['downloadUrl'];
+    title = json['title'];
+    fileType = json['fileType'];
+    fileSize = json['fileSize'];
   }
 }
 

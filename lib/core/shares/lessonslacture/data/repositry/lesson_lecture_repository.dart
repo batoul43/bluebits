@@ -66,11 +66,13 @@ class LessonLectureRepository {
     return LessonLectureModels.fromJson(response);
   }
 
-  Future<http.Response> downloadLectureFile(
+  Future<LessonLectureModels> downloadLectureFile(
     String token,
     String lectureId,
   ) async {
-    return await apiService.downloadLectureFile(token, lectureId);
+    return LessonLectureModels.fromJson(
+      await apiService.downloadLectureFile(token, lectureId),
+    );
   }
 
   Future<LessonLectureModels> getLecturesByType(
