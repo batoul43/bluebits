@@ -52,6 +52,7 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
   ) async {
     emit(LessonLectureLoading());
     try {
+      print('-----------------------------------------------------');
       final lectureModel = await repository.uploadLecture(
         token,
         title,
@@ -61,14 +62,15 @@ class LessonLectureCubit extends Cubit<LessonLectureState> {
         isPublished,
         filePath,
       );
+      print(lectureModel);
 
       if (lectureModel.isSuccess == true) {
+        fetchAllLectures();
         emit(
           LessonLectureActionSuccess(
             lectureModel.message ?? 'تم رفع المحاضرة بنجاح',
           ),
         );
-        fetchAllLectures();
       } else {
         emit(LessonLectureError(lectureModel.message ?? 'فشل في رفع المحاضرة'));
       }

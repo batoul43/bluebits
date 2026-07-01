@@ -7,6 +7,7 @@ class LessonLectureModels {
   LectureResponseData? data;
   // المتغير الجديد المخصص لمعلومات التحميل فقط
   DownloadLectureData? downloadData;
+  List<Data>? lectures;
 
   LessonLectureModels({
     this.isSuccess,
@@ -14,6 +15,7 @@ class LessonLectureModels {
     this.statusCode,
     this.data,
     this.downloadData,
+    this.lectures,
   });
 
   LessonLectureModels.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,11 @@ class LessonLectureModels {
       if (json['data'] is Map<String, dynamic> &&
           json['data'].containsKey('downloadUrl')) {
         downloadData = DownloadLectureData.fromJson(json['data']);
+      } else if (json['data'] is List) {
+        data = LectureResponseData(lectures: []);
+        json['data'].forEach((v) {
+          data!.lectures!.add(Data.fromJson(v));
+        });
       }
       // غير ذلك، فهو الاستجابة الطبيعية التي تجلب قائمة المحاضرات
       else {

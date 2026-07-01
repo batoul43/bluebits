@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class AdminSectionContainer extends StatelessWidget {
   final String title;
@@ -38,12 +37,19 @@ class AdminSectionContainer extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: screenWidth * 0.07),
-              SizedBox(width: screenWidth * 0.03),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Icon(icon, color: Colors.white, size: 24), // الأيقونة الخاصة بك
+              const SizedBox(width: 10), // المسافة
+              Expanded(
+                // <--- قمنا بإضافة Expanded هنا لاحتواء النص
+                child: Text(
+                  title, // المتغير الذي يحمل النص "إدارة المحاضرات..."
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  // يمكنك إضافة هذا السطر لضمان عدم حدوث مشاكل في حال كان النص طويلاً جداً
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
             ],

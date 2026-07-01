@@ -1,6 +1,5 @@
 import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_lecture_api_service.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/models/lesson_lecture_models.dart';
-import 'package:http/http.dart' as http;
 
 class LessonLectureRepository {
   final LessonLectureApiService apiService;
@@ -33,11 +32,17 @@ class LessonLectureRepository {
       isPublished,
       filePath,
     );
+    print('-------------------------------------------');
+    print('repoLecture - Upload: $response');
+    print('-------------------------------------------');
     return LessonLectureModels.fromJson(response);
   }
 
   Future<LessonLectureModels> getLectureById(String lectureId) async {
     final response = await apiService.getLectureById(lectureId);
+    print('-------------------------------------------');
+    print('repoLecture - GetById: $response');
+    print('-------------------------------------------');
     return LessonLectureModels.fromJson(response);
   }
 
