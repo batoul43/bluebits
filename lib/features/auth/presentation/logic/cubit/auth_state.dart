@@ -10,10 +10,16 @@ class Authenticated extends AuthState {}
 
 class Unauthenticated extends AuthState {}
 
-class AuthSuccess extends AuthState {
-  final UserModel signupresult;
+class AuthSuccessLogin extends AuthState {
+  final UserModel Loginresult;
 
-  AuthSuccess({required this.signupresult});
+  AuthSuccessLogin({required this.Loginresult});
+}
+
+class AuthSuccessSignup extends AuthState {
+  final UserResultSignup signupresult;
+
+  AuthSuccessSignup({required this.signupresult});
 }
 
 class AuthForgetPassword extends AuthState {
@@ -29,6 +35,18 @@ class AuthResetPassword extends AuthState {
 }
 
 class AuthLogoutSuccess extends AuthState {}
+
+class AuthLogoutFailed extends AuthState {
+  final String message;
+
+  AuthLogoutFailed({required this.message});
+}
+
+class AuthresendVerification extends AuthState {
+  final String message;
+
+  AuthresendVerification({required this.message});
+}
 
 class AuthFailed extends AuthState {
   final String message;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
 import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
+import 'package:bluebits_app/features/auth/data/models/user_result_signup.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/data/models/usermodel.dart';
 
@@ -11,14 +12,14 @@ class AuthRepo {
   final AuthApi authApi;
 
   AuthRepo({required this.authApi});
-  Future<UserModel?> signup(UserData signupdata) async {
+  Future<UserResultSignup?> signup(UserData signupdata) async {
     try {
       final signupdataresult = await authApi.signup(signupdata);
-      // print('------------------------------------------');
-      // print('repo:${signupdataresult}');
-      // print('------------------------------------------');
+      print('------------------------------------------');
+      print('repo:${signupdataresult}');
+      print('------------------------------------------');
 
-      final data = UserModel.fromJson(signupdataresult);
+      final data = UserResultSignup.fromJson(signupdataresult);
       print('repodata:$data');
       return data;
     } catch (e) {
@@ -80,6 +81,16 @@ class AuthRepo {
     try {
       final logout = await authApi.logout(token);
       return logout;
+    } catch (e) {
+      print(e.toString());
+      return null;
+    }
+  }
+
+  Future<dynamic> resendVerification(String email) async {
+    try {
+      final resendVerification = await authApi.resendVerification(email);
+      return resendVerification;
     } catch (e) {
       print(e.toString());
       return null;

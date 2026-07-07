@@ -2,6 +2,7 @@ import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
+import 'package:bluebits_app/features/auth/presentation/screens/verify_email_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/custombutton.dart';
 import 'package:bluebits_app/features/auth/presentation/widgets/customtextfield.dart';
 import 'package:bluebits_app/features/layout/layout_app.dart';
@@ -156,11 +157,21 @@ class SignupScreen extends StatelessWidget {
 
                           BlocConsumer<AuthCubit, AuthState>(
                             listener: (context, state) {
-                              if (state is AuthSuccess) {
-                                Navigator.pushReplacement(
+                              if (state is AuthSuccessSignup) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      state.signupresult.message ?? '',
+                                    ),
+                                    backgroundColor: ColorsManager.green,
+                                  ),
+                                );
+                                Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => LayoutApp(),
+                                    builder: (context) => VerifyEmailScreen(
+                                      email: state.signupresult.email,
+                                    ),
                                   ),
                                 );
                               } else if (state is AuthFailed) {

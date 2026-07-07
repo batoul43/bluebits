@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/features/auth/data/models/forget_password.dart';
 import 'package:bluebits_app/features/auth/data/models/user_login_.dart';
+import 'package:bluebits_app/features/auth/data/models/user_result_signup.dart';
 import 'package:bluebits_app/features/auth/data/models/userdata.dart';
 import 'package:bluebits_app/features/auth/data/models/usermodel.dart';
 import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
@@ -11,7 +12,7 @@ part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit({required this.authrepo}) : super(AuthInitial());
   final AuthRepo authrepo;
-  Future<UserModel?> signup(UserData signupdata) async {
+  Future<UserResultSignup?> signup(UserData signupdata) async {
     try {
       emit(AuthLoading());
       final signupdataresult = await authrepo.signup(signupdata);
@@ -19,15 +20,14 @@ class AuthCubit extends Cubit<AuthState> {
       print(signupdataresult);
       print('------------------------------------------');
       if (signupdataresult != null) {
-        await CachHelper.setValue('Token', signupdataresult.token);
         print('success');
-        emit(AuthSuccess(signupresult: signupdataresult));
+        emit(AuthSuccessSignup(signupresult: signupdataresult));
         return signupdataresult;
       } else {
         emit(
           AuthFailed(
             message:
-                'Signup returned no user data ${signupdataresult.toString()}',
+                'Signup returned no user data ${signupdataresult?.message.toString()}',
           ),
         );
         return null;
@@ -49,7 +49,7 @@ class AuthCubit extends Cubit<AuthState> {
       if (logindataresult != null) {
         await CachHelper.setValue('Token', logindataresult.token);
 
-        emit(AuthSuccess(signupresult: logindataresult));
+        emit(AuthSuccessLogin(Loginresult: logindataresult));
         return logindataresult;
       } else {
         emit(
@@ -144,14 +144,31 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthLoading());
       final token = await CachHelper.getValue('Token');
       final logout = await authrepo.logout(token);
+      print('------------------------------------------');
+      print(logout);
+      print('------------------------------------------');
       if (logout != null) {
         await CachHelper.removeValue('Token');
+
         emit(AuthLogoutSuccess());
       } else {
-        emit(AuthFailed(message: 'Logout failed'));
+        emit(AuthLogoutFailed(message: 'Logout failed'));
       }
     } catch (e) {
-      emit(AuthFailed(message: e.toString()));
+      emit(AuthLogoutFailed(message: e.toString()));
+    }
+  }
+
+  Future<void> resendVerification(String email) async {
+    try {
+      emit(AuthLoading());
+
+      final resendVerification = await authrepo.resendVerification(email);
+      if (resendVerification != null) {
+        emit(AuthresendVerification(message: resendVerification['message']));
+      }
+    } catch (e) {
+      emit(AuthresendVerification(message: e.toString()));
     }
   }
 }

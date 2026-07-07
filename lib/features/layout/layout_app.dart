@@ -291,19 +291,13 @@ class _LayoutAppState extends State<LayoutApp> {
             leading: Icon(Icons.logout, color: colorScheme.error),
             title: BlocListener<AuthCubit, AuthState>(
               listener: (context, state) {
-                if (state is AuthLoading) {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) {
-                      return AlertDialog(
-                        content: Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                  );
+                if (state is AuthLogoutFailed) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(state.message)));
                 } else if (state is AuthLogoutSuccess) {
                   Navigator.pop(context);
-                  Navigator.pushReplacement(
+                  Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => SigninScreen()),
                   );

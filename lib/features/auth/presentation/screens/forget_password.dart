@@ -116,7 +116,7 @@ class ForgetPassword extends StatelessWidget {
 
                             BlocConsumer<AuthCubit, AuthState>(
                               listener: (context, state) {
-                                if (state is AuthSuccess) {
+                                if (state is AuthForgetPassword) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(

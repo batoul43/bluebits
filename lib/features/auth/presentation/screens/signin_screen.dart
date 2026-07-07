@@ -155,7 +155,7 @@ class SigninScreen extends StatelessWidget {
 
                           BlocConsumer<AuthCubit, AuthState>(
                             listener: (context, state) {
-                              if (state is AuthSuccess) {
+                              if (state is AuthSuccessLogin) {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(

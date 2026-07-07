@@ -17,11 +17,8 @@ class AuthApi {
       print('------------------------------------------');
       print(response.body);
       print('------------------------------------------');
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        return null;
-      }
+
+      return jsonDecode(response.body);
     } catch (e) {
       throw Exception(e.toString());
     }
@@ -128,6 +125,22 @@ class AuthApi {
       } else {
         return null;
       }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<dynamic> resendVerification(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${baseUrl}resendVerification'),
+        headers: {'Content-type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+      print('------------------------------------------');
+      print(response.body);
+      print('------------------------------------------');
+      return jsonDecode(response.body);
     } catch (e) {
       return null;
     }

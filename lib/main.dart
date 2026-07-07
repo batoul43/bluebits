@@ -12,6 +12,9 @@ import 'package:bluebits_app/features/auth/presentation/screens/reset_password.d
 import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/layout/layout_app.dart';
 import 'package:bluebits_app/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:bluebits_app/features/profile/data/api_service/profile_api.dart';
+import 'package:bluebits_app/features/profile/data/repository/profile_repo.dart';
+import 'package:bluebits_app/features/profile/presentation/logic/profile_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,6 +33,9 @@ Future<void> main() async {
           create: (context) =>
               AuthCubit(authrepo: AuthRepo(authApi: AuthApi()))
                 ..checkAuthStatus(),
+        ),
+        BlocProvider(
+          create: (context) => ProfileCubit(repo: ProfileRepo(profileApi: ProfileApi()))
         ),
       ],
       child: const MainApp(),

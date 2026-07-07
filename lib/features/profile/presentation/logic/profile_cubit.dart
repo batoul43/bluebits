@@ -33,10 +33,18 @@ class ProfileCubit extends Cubit<ProfileState> {
     if (response != null &&
         response.isSuccess == true &&
         response.data != null) {
+      // 1. إصدار حالة نجاح التحديث لكي يلتقطها الـ Listener ويظهر الـ SnackBar
       emit(ProfileUpdateSuccess(response.data!));
-      // طلب تحديث جديد بعد التغيير ليعرض بيانات حديثة من السيرفر
+
+      // 2. إصدار حالة النجاح العامة فوراً لتحديث الواجهة بالبيانات الجديدة محلياً
+      // بدون الحاجة لاستدعاء _refreshData() من الواجهة
+      emit(ProfileSuccess(response.data!));
     } else {
       emit(ProfileUpdateError(response?.message ?? "فشل تحديث البيانات"));
+
+      // اختياري: إذا فشل التحديث وأردت عدم إخفاء الشاشة，
+      // يمكنك استدعاء دالة جلب البيانات السابقة هنا لكي تعود الواجهة كما كانت
+      loadProfile(token);
     }
   }
 

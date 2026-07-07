@@ -27,7 +27,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // استخدام MediaQuery للحصول على أبعاد الشاشة
     final size = MediaQuery.sizeOf(context);
     final theme = Theme.of(context);
 
@@ -41,13 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _showSnackBar(context, "تم تحديث الصورة بنجاح", Colors.green);
             } else if (state is ProfileUpdateSuccess) {
               _showSnackBar(context, "تم تعديل الاسم بنجاح", Colors.green);
-              _refreshData(context);
             } else if (state is ProfileUpdateError) {
               _showSnackBar(context, state.message, theme.colorScheme.error);
             }
           },
           builder: (context, state) {
-            if (state is ProfileLoading) {
+            // 1. عرض مؤشر التحميل أثناء جلب البيانات أو أثناء تحديث الاسم
+            if (state is ProfileLoading || state is ProfileUpdateLoading) {
               return Center(
                 child: CircularProgressIndicator(
                   color: theme.colorScheme.primary,
@@ -55,8 +54,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }
 
+            // 2. تحديد مصدر البيانات لعرضها فوراً بناءً على الحالة الحالية
+            Data? profileData;
             if (state is ProfileSuccess) {
-              final Data p = state.data;
+              profileData = state.data;
+            } else if (state is ProfileUpdateSuccess) {
+              profileData = state
+                  .updatedData; // هنا يتم أخذ البيانات المحدثة مباشرة للكارد
+            }
+
+            // 3. بناء الواجهة إذا كانت البيانات متوفرة
+            if (profileData != null) {
               return RefreshIndicator(
                 onRefresh: () async => await _refreshData(context),
                 child: Padding(
@@ -71,9 +79,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             vertical: size.height * 0.02,
                           ),
                           children: [
-                            _buildProfileHeader(context, p, size),
+                            _buildProfileHeader(context, profileData, size),
                             SizedBox(height: size.height * 0.03),
-                            _buildInfoCard(p, theme),
+                            _buildInfoCard(profileData, theme),
                           ],
                         ),
                       ),
@@ -83,6 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }
 
+            // 4. واجهة الاحتياط في حال عدم وجود أي بيانات
             return InkWell(
               onTap: () async => await _refreshData(context),
               child: Center(
@@ -105,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Stack(
         children: [
           CircleAvatar(
-            radius: size.width * 0.15, // حجم ديناميكي للصورة
+            radius: size.width * 0.15,
             backgroundColor: Theme.of(context).colorScheme.surface,
             backgroundImage:
                 p.profileImage != null && p.profileImage!.isNotEmpty
@@ -226,6 +235,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
                 Navigator.pop(context);
                 _updateName(context, newName);
+                // تم إزالة دالة _refreshData من هنا لمنع التضارب وحصول الـ Bug
               },
               child: const Text('حفظ'),
             ),
