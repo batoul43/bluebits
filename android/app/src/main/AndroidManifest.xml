@@ -22,6 +22,19 @@ xmlns:tools="http://schemas.android.com/tools"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+        
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- السماح بالتقاط روابط النطاق الجديد -->
+                <data android:scheme="http" android:host="myapp.com" />
+                <data android:scheme="https" android:host="myapp.com" />
+                
+                <!-- تحديد المسار المخصص للرابط -->
+                <data android:pathPrefix="/reset-password" />
+            </intent-filter>
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues
@@ -34,27 +47,15 @@ xmlns:tools="http://schemas.android.com/tools"
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-           <intent-filter android:autoVerify="true">
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-
-    <!-- تعديل الـ host ليتطابق مع رابط Render الخاص بكِ -->
-    <data android:scheme="http" 
-          android:host="bluebits24.onrender.com" 
-          android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
-          
-    <!-- نصيحة: Render يدعم https دائماً، يفضل إضافة هذا السطر أيضاً -->
-    <data android:scheme="https" 
-          android:host="bluebits24.onrender.com" 
-          android:pathPrefix="/api/v1.0.0/users/resetPassword/" />
-</intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            <meta-data
+    android:name="io.flutter.embedding.android.EnableImpeller"
+    android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -35,7 +35,8 @@ Future<void> main() async {
                 ..checkAuthStatus(),
         ),
         BlocProvider(
-          create: (context) => ProfileCubit(repo: ProfileRepo(profileApi: ProfileApi()))
+          create: (context) =>
+              ProfileCubit(repo: ProfileRepo(profileApi: ProfileApi())),
         ),
       ],
       child: const MainApp(),
@@ -58,14 +59,18 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
-    initDeepLinks(); // إضافة هذا الاستدعاء الضروري لعمل الروابط
+    initDeepLinks(); // استدعاء الدالة لتهيئة التقاط الروابط
   }
 
   void initDeepLinks() {
     _applinks = AppLinks();
+
+    // 1. الاستماع للرابط في حال كان التطبيق يعمل في الخلفية
     _linkSubscription = _applinks.uriLinkStream.listen((uri) {
       _handleDeepLink(uri);
     });
+
+    // 2. التقاط الرابط في حال تم فتح التطبيق وهو مغلق تماماً
     _applinks.getInitialLink().then((uri) {
       if (uri != null) {
         _handleDeepLink(uri);
@@ -73,14 +78,20 @@ class _MainAppState extends State<MainApp> {
     });
   }
 
+  // التعديل الأساسي هنا لالتقاط الرابط العميق المخصص (Custom Scheme)
   void _handleDeepLink(Uri uri) {
-    if (uri.pathSegments.contains('reset-password')) {
-      final token = uri.pathSegments.last;
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) => ResetPassword(resetToken: token),
-        ),
-      );
+    // التحقق من النطاق الجديد myapp.com
+    if ((uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.host == 'myapp.com') {
+      // التحقق من وجود مسار reset-password
+      if (uri.pathSegments.contains('reset-password')) {
+        // الانتقال لصفحة تعيين كلمة المرور وتمرير قيمة فارغة للتوكن
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => ResetPassword(resetToken: ''),
+          ),
+        );
+      }
     }
   }
 
@@ -111,7 +122,7 @@ class _MainAppState extends State<MainApp> {
             return OnboardingScreen();
           } else if (state is Authenticated) {
             return LayoutApp();
-          } else if (state is Unauthenticated) {
+          } else if (state is Unauthenticated || state is AuthLogoutSuccess) {
             return SigninScreen();
           } else if (state is AuthFailed) {
             // إضافة Scaffold لتجنب أخطاء المساحة وتنسيق الشاشة

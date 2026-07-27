@@ -16,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final String baseUrl = "http://bluebits24.onrender.com/";
+  Data? _profileData;
 
   @override
   void initState() {
@@ -38,15 +39,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _showSnackBar(context, state.message, theme.colorScheme.error);
             } else if (state is ProfileImageUploadSuccess) {
               _showSnackBar(context, "تم تحديث الصورة بنجاح", Colors.green);
+              _refreshData(context);
             } else if (state is ProfileUpdateSuccess) {
               _showSnackBar(context, "تم تعديل الاسم بنجاح", Colors.green);
+              _refreshData(context);
             } else if (state is ProfileUpdateError) {
+              // حماية التطبيق من الانهيار عند فشل السيرفر وإرجاع رسالة null
               _showSnackBar(context, state.message, theme.colorScheme.error);
             }
           },
           builder: (context, state) {
-            // 1. عرض مؤشر التحميل أثناء جلب البيانات أو أثناء تحديث الاسم
-            if (state is ProfileLoading || state is ProfileUpdateLoading) {
+            if (state is ProfileSuccess) {
+              _profileData = state.data;
+            } else if (state is ProfileUpdateSuccess) {
+              _profileData = state.updatedData;
+            }
+
+            // عرض مؤشر التحميل في البداية فقط عندما لا تتوفر أي بيانات بعد
+            if ((state is ProfileLoading || state is ProfileUpdateLoading) &&
+                _profileData == null) {
               return Center(
                 child: CircularProgressIndicator(
                   color: theme.colorScheme.primary,
@@ -54,44 +65,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }
 
-            // 2. تحديد مصدر البيانات لعرضها فوراً بناءً على الحالة الحالية
-            Data? profileData;
-            if (state is ProfileSuccess) {
-              profileData = state.data;
-            } else if (state is ProfileUpdateSuccess) {
-              profileData = state
-                  .updatedData; // هنا يتم أخذ البيانات المحدثة مباشرة للكارد
-            }
-
-            // 3. بناء الواجهة إذا كانت البيانات متوفرة
-            if (profileData != null) {
-              return RefreshIndicator(
-                onRefresh: () async => await _refreshData(context),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      PageHeader(title: 'الملف الشخصي', subtitle: ''),
-                      Expanded(
-                        child: ListView(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: size.width * 0.05,
-                            vertical: size.height * 0.02,
+            if (_profileData != null) {
+              return Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: () async => await _refreshData(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          PageHeader(title: 'الملف الشخصي', subtitle: ''),
+                          Expanded(
+                            child: ListView(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: size.width * 0.05,
+                                vertical: size.height * 0.02,
+                              ),
+                              children: [
+                                _buildProfileHeader(
+                                  context,
+                                  _profileData!,
+                                  size,
+                                ),
+                                SizedBox(height: size.height * 0.03),
+                                _buildInfoCard(_profileData!, theme),
+                              ],
+                            ),
                           ),
-                          children: [
-                            _buildProfileHeader(context, profileData, size),
-                            SizedBox(height: size.height * 0.03),
-                            _buildInfoCard(profileData, theme),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  // شريط تحميل علوي ناعم أثناء معالجة الطلبات في الخلفية دون إخفاء الشاشة
+                  if (state is ProfileLoading || state is ProfileUpdateLoading)
+                    LinearProgressIndicator(color: theme.colorScheme.primary),
+                ],
               );
             }
 
-            // 4. واجهة الاحتياط في حال عدم وجود أي بيانات
             return InkWell(
               onTap: () async => await _refreshData(context),
               child: Center(
@@ -198,10 +209,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // --- دوال منطقية ---
 
-  void _showSnackBar(BuildContext context, String message, Color color) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+  // تم تعديل الدالة لتقبل String مسموح أن يكون null وحماية الويدجت
+  void _showSnackBar(BuildContext context, String? message, Color color) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message ?? 'حدث خطأ غير متوقع'),
+          backgroundColor: color,
+        ),
+      );
+    }
   }
 
   Future<void> _showEditNameDialog(
@@ -234,8 +251,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   return;
                 }
                 Navigator.pop(context);
+
+                // تحديث محلي فوري وآمن (يحميك من أخطاء الـ Immutable Model)
+                try {
+                  setState(() {
+                    if (_profileData != null) {
+                      _profileData!.name = newName;
+                    }
+                  });
+                } catch (e) {
+                  debugPrint("تعذر التعديل المحلي المباشر: $e");
+                }
+
                 _updateName(context, newName);
-                // تم إزالة دالة _refreshData من هنا لمنع التضارب وحصول الـ Bug
               },
               child: const Text('حفظ'),
             ),

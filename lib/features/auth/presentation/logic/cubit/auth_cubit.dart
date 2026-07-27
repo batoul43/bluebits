@@ -74,12 +74,15 @@ class AuthCubit extends Cubit<AuthState> {
       print(forgetpasswordresult?.message);
 
       print('------------------------------------------');
-      if (forgetpasswordresult!.data != null) {
+      if (forgetpasswordresult != null &&
+          forgetpasswordresult.isSuccess == true) {
         emit(AuthForgetPassword(message: forgetpasswordresult.message));
         return forgetpasswordresult;
       } else {
         emit(
-          AuthFailed(message: ' ${forgetpasswordresult.message.toString()}'),
+          AuthFailed(
+            message: forgetpasswordresult?.message ?? 'Forget password failed',
+          ),
         );
         return null;
       }
@@ -87,6 +90,7 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthFailed(message: e.toString()));
       return null;
     }
+    return null;
   }
 
   Future<Password?> resetpassword(String password, String token) async {

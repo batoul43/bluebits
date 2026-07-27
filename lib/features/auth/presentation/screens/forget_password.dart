@@ -118,10 +118,8 @@ class ForgetPassword extends StatelessWidget {
                               listener: (context, state) {
                                 if (state is AuthForgetPassword) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "تم إرسال رابط الاستعادة بنجاح",
-                                      ),
+                                    SnackBar(
+                                      content: Text(state.message),
                                       backgroundColor: ColorsManager.green,
                                     ),
                                   );

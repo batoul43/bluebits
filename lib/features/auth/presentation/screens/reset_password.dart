@@ -8,10 +8,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ResetPassword extends StatelessWidget {
   ResetPassword({super.key, required this.resetToken});
+
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final resetToken;
+  final String? resetToken;
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -28,11 +30,16 @@ class ResetPassword extends StatelessWidget {
             gradient: LinearGradient(colors: ColorsManager.backgroundGradient),
           ),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+            padding: EdgeInsets.symmetric(horizontal: size.width * 0.03),
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
+                  const Image(
+                    width: 250,
+                    height: 100,
+                    image: AssetImage('assets/images/logo.png'),
+                  ),
                   Container(
                     width: size.width,
                     decoration: BoxDecoration(
@@ -43,14 +50,14 @@ class ResetPassword extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: ColorsManager.black.withOpacity(0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(24.0),
+                      padding: const EdgeInsets.all(20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -59,11 +66,10 @@ class ResetPassword extends StatelessWidget {
                               'أدخل كلمة المرور الجديدة',
                               style: theme.textTheme.displayLarge?.copyWith(
                                 color: ColorsManager.whiteText,
-                                fontSize: 22,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 15),
+                          const SizedBox(height: 30),
                           CustomTextField(
                             icon: Icons.lock_outline,
                             isPassword: true,
@@ -81,7 +87,7 @@ class ResetPassword extends StatelessWidget {
                             },
                           ),
 
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 20),
 
                           CustomTextField(
                             icon: Icons.lock_outline,
@@ -93,9 +99,12 @@ class ResetPassword extends StatelessWidget {
                                 ? 'كلمات المرور غير متطابقة'
                                 : null,
                           ),
+
+                          const SizedBox(height: 30),
+
                           BlocConsumer<AuthCubit, AuthState>(
                             listener: (context, state) {
-                              if (state is ResetPassword) {
+                              if (state is AuthResetPassword) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
@@ -127,7 +136,7 @@ class ResetPassword extends StatelessWidget {
                                   if (_formKey.currentState!.validate()) {
                                     context.read<AuthCubit>().resetpassword(
                                       _passwordController.text,
-                                      resetToken,
+                                      resetToken!,
                                     );
                                   }
                                 },

@@ -50,17 +50,21 @@ class AuthApi {
       final response = await http.post(
         Uri.parse('${baseUrl}forgotPassword'),
         headers: {'Content-type': 'application/json'},
-        body: jsonEncode({'email': email}),
+        body: jsonEncode({
+          "email": email,
+          // تحديد رابط الويب الذي قمنا بإعداده في الـ manifest لفتحه تلقائياً
+          "redirectUrl": "https://myapp.com/reset-password",
+        }),
       );
       print('------------------------------------------');
       print(response.body);
+      print(response.statusCode);
       print('------------------------------------------');
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        return jsonDecode(response.body);
-      }
+
+      // إرجاع النتيجة للتأكد من حالة الاستجابة
+      return jsonDecode(response.body);
     } catch (e) {
+      print("Error in ForgetPassword API: ${e.toString()}");
       return null;
     }
   }

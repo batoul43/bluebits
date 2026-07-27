@@ -15,7 +15,6 @@ import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
 import 'package:bluebits_app/core/widget/custom_app_bar.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/screens/admin_control_panel_screen.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
-import 'package:bluebits_app/features/auth/presentation/screens/signin_screen.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
@@ -220,6 +219,9 @@ class _LayoutAppState extends State<LayoutApp> {
                 currentAccountPicture: CircleAvatar(
                   backgroundColor: colorScheme.primary.withOpacity(0.1),
                   backgroundImage: avatar,
+                  onBackgroundImageError: (exception, stackTrace) {
+                    // التقاط خطأ جلب الصورة (500) بصمت لتجنب انهيار الواجهة
+                  },
                 ),
                 accountName: Text(
                   accountName,
@@ -297,10 +299,7 @@ class _LayoutAppState extends State<LayoutApp> {
                   ).showSnackBar(SnackBar(content: Text(state.message)));
                 } else if (state is AuthLogoutSuccess) {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SigninScreen()),
-                  );
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('تم تسجيل الخروج بنجاح')),
                   );
