@@ -25,6 +25,10 @@ import 'package:bluebits_app/features/profile/presentation/screens/profile_scree
 import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/features/question_banks/presentation/screens/question_banks_screen.dart';
+import 'package:bluebits_app/features/surveys/surveys_admin/data/api_service/admin_api_service.dart';
+import 'package:bluebits_app/features/surveys/surveys_admin/data/repository/admin_survey_repository.dart';
+import 'package:bluebits_app/features/surveys/surveys_admin/presentation/logic/admin_survey_cubit.dart';
+import 'package:bluebits_app/features/surveys/surveys_admin/presentation/screens/admin_survey_sceen.dart';
 import 'package:bluebits_app/features/tasks/presentation/logic/cubit/acadimmictask_cubit.dart';
 import 'package:bluebits_app/features/tasks/presentation/logic/cubit/task_cubit.dart';
 import 'package:bluebits_app/features/tasks/presentation/screens/task_secreen.dart';
@@ -70,7 +74,8 @@ class _LayoutAppState extends State<LayoutApp> {
       ),
       ProfileScreen(),
       AdminControlPanelScreen(),
-      // أضيفي باقي الصفحات هنا
+      // تم الاكتفاء باستدعاء الشاشة هنا، لأن الـ Providers تم تعريفها في الـ build أسفل
+      AdminSurveyScreen(),
     ];
 
     _loadProfile();
@@ -118,6 +123,12 @@ class _LayoutAppState extends State<LayoutApp> {
             create: (context) => LessonLectureCubit(
               repository: LessonLectureRepository(LessonLectureApiService()),
             ),
+          ),
+          BlocProvider(
+            create: (context) => AdminSurveyCubit(
+              repository: AdminSurveyRepository(AdminSurveyApiService()),
+            )..fetchAllForms(), // جلب البيانات تلقائياً عند فتح الشاشة
+            // تم حذف سطر child الخاطئ من هنا
           ),
         ],
         child: Scaffold(
@@ -282,6 +293,13 @@ class _LayoutAppState extends State<LayoutApp> {
                   5,
                   Icons.admin_panel_settings,
                   "لوحة التحكم",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  6,
+                  Icons.poll_outlined,
+                  "إدارة الاستبيانات",
                   width,
                   context,
                 ),
