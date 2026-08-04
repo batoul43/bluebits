@@ -90,7 +90,6 @@ class AuthCubit extends Cubit<AuthState> {
       emit(AuthFailed(message: e.toString()));
       return null;
     }
-    return null;
   }
 
   Future<Password?> resetpassword(String password, String token) async {

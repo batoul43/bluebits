@@ -25,10 +25,18 @@ import 'package:bluebits_app/features/profile/presentation/screens/profile_scree
 import 'package:bluebits_app/features/question_banks/presentation/logic/cubit/bank_cubit.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/features/question_banks/presentation/screens/question_banks_screen.dart';
+import 'package:bluebits_app/features/schedule_setting/data/api_Service/schedule_setting_api_service.dart';
+import 'package:bluebits_app/features/schedule_setting/data/repository/schedule_setting_repository.dart';
+import 'package:bluebits_app/features/schedule_setting/presentation/logic/schedule_setting_cubit.dart';
+import 'package:bluebits_app/features/schedule_setting/presentation/screen/schedule_setting_screen.dart';
 import 'package:bluebits_app/features/surveys/surveys_admin/data/api_service/admin_api_service.dart';
 import 'package:bluebits_app/features/surveys/surveys_admin/data/repository/admin_survey_repository.dart';
 import 'package:bluebits_app/features/surveys/surveys_admin/presentation/logic/admin_survey_cubit.dart';
 import 'package:bluebits_app/features/surveys/surveys_admin/presentation/screens/admin_survey_sceen.dart';
+import 'package:bluebits_app/features/surveys/surveys_student/data/surveys_api_service/student_surveys_api_service.dart';
+import 'package:bluebits_app/features/surveys/surveys_student/data/surveys_repository/student_surveys_repository.dart';
+import 'package:bluebits_app/features/surveys/surveys_student/presentation/logic/student_survey_cubit.dart';
+import 'package:bluebits_app/features/surveys/surveys_student/presentation/screen/student_surveys_screen.dart';
 import 'package:bluebits_app/features/tasks/presentation/logic/cubit/acadimmictask_cubit.dart';
 import 'package:bluebits_app/features/tasks/presentation/logic/cubit/task_cubit.dart';
 import 'package:bluebits_app/features/tasks/presentation/screens/task_secreen.dart';
@@ -76,6 +84,8 @@ class _LayoutAppState extends State<LayoutApp> {
       AdminControlPanelScreen(),
       // تم الاكتفاء باستدعاء الشاشة هنا، لأن الـ Providers تم تعريفها في الـ build أسفل
       AdminSurveyScreen(),
+      StudentSurveysScreen(),
+      ScheduleManagementScreen(),
     ];
 
     _loadProfile();
@@ -128,7 +138,18 @@ class _LayoutAppState extends State<LayoutApp> {
             create: (context) => AdminSurveyCubit(
               repository: AdminSurveyRepository(AdminSurveyApiService()),
             )..fetchAllForms(), // جلب البيانات تلقائياً عند فتح الشاشة
-            // تم حذف سطر child الخاطئ من هنا
+          ),
+          BlocProvider(
+            create: (context) => StudentSurveyCubit(
+              repository: StudentSurveyRepository(StudentSurveyApiService()),
+            )..fetchActiveForms(),
+          ),
+          BlocProvider(
+            create: (context) => ScheduleSettingCubit(
+              repository: ScheduleSettingRepository(
+                ScheduleSettingApiService(),
+              ),
+            ),
           ),
         ],
         child: Scaffold(
@@ -300,6 +321,20 @@ class _LayoutAppState extends State<LayoutApp> {
                   6,
                   Icons.poll_outlined,
                   "إدارة الاستبيانات",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  7,
+                  Icons.assignment,
+                  "تقييم المقررات (الطلاب)",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  8,
+                  Icons.edit_calendar_outlined, // أيقونة معبرة عن الجداول
+                  "إعدادات الجدولة",
                   width,
                   context,
                 ),
