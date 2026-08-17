@@ -17,15 +17,13 @@ class ConflictsResponseModel {
     statusCode = json['statusCode'];
 
     if (json['conflicts'] != null) {
-      conflicts = <ConflictItem>[];
-      json['conflicts'].forEach((v) {
-        conflicts!.add(ConflictItem.fromJson(v));
-      });
+      conflicts = List<ConflictItem>.from(
+        json['conflicts'].map((x) => ConflictItem.fromJson(x)),
+      );
     } else if (json['data'] != null) {
-      conflicts = <ConflictItem>[];
-      json['data'].forEach((v) {
-        conflicts!.add(ConflictItem.fromJson(v));
-      });
+      conflicts = List<ConflictItem>.from(
+        json['data'].map((x) => ConflictItem.fromJson(x)),
+      );
     }
   }
 

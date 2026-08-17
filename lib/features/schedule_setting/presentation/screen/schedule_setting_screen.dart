@@ -1,724 +1,955 @@
-import 'dart:convert'; // تمت الإضافة من أجل تنسيق الـ JSON
-
-import 'package:bluebits_app/core/theming/colors.dart';
-import 'package:bluebits_app/features/schedule_setting/presentation/logic/schedule_setting_cubit.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
+import 'package:bluebits_app/features/schedule_setting/presentation/logic/schedule_setting_cubit.dart';
+// تأكد من صحة مسارات الاستيراد هذه حسب بنية مشروعك
+import 'package:bluebits_app/features/schedule_setting/data/models/schedule_result_model.dart';
+import 'package:bluebits_app/features/schedule_setting/data/models/schedule_solve_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ScheduleManagementScreen extends StatefulWidget {
-  const ScheduleManagementScreen({super.key});
+class ScheduleSettingsScreen extends StatefulWidget {
+  const ScheduleSettingsScreen({super.key});
 
   @override
-  State<ScheduleManagementScreen> createState() =>
-      _ScheduleManagementScreenState();
+  State<ScheduleSettingsScreen> createState() => _ScheduleSettingsScreenState();
 }
 
-class _ScheduleManagementScreenState extends State<ScheduleManagementScreen> {
+class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
   String? selectedSemesterId;
-  String currentAcademicYear = "2025-2026";
 
-  DateTime? startDate;
-  DateTime? endDate;
+  // متغير للتحكم في تسلسل عملية الـ Solve وإظهار مؤشر التحميل
+  bool _isSolvingSequence = false;
 
   @override
   void initState() {
     super.initState();
-    // استدعاء الفصول الدراسية للعرض عند بدء الشاشة
-    // يرجى التأكد من اسم الدالة المسؤولة عن جلب الفصول في SemesterCubit
-    // (مثلاً getSemesters() أو fetchAllSemesters())
     context.read<SemesterCubit>().fetchAllSemesters();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width > 600;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(title: const Text("إدارة الجدولة"), centerTitle: true),
-        body: BlocConsumer<ScheduleSettingCubit, ScheduleSettingState>(
-          listener: (context, state) {
-            if (state is ScheduleSettingError) {
-              _showSnackBar(context, state.message, ColorsManager.redaccent);
-            } else if (state is ScheduleSettingActionResult) {
-              _showSnackBar(context, state.message, ColorsManager.green);
-            } else if (state is DeleteSuccess) {
-              _showSnackBar(context, state.message, ColorsManager.green);
-              setState(() => selectedSemesterId = null);
-            } else if (state is ScheduleConflictLoaded) {
-              _showSnackBar(
-                context,
-                "تم توليد البيانات بنجاح",
-                ColorsManager.green,
-              );
-            } else if (state is ScheduleSolvetimefoldLoaded) {
-              _showSnackBar(
-                context,
-                "تم حل التعارضات مبدئياً",
-                ColorsManager.green,
-              );
-            } else if (state is ScheduleSolveLoaded) {
-              _showSnackBar(
-                context,
-                "تم بناء الجدول الزمني بنجاح",
-                ColorsManager.green,
-              );
-            } else if (state is SchedulePublishLoaded) {
-              _showSnackBar(
-                context,
-                "تم نشر الجدول للطلاب بنجاح!",
-                ColorsManager.blue,
-              );
-            }
-          },
-          builder: (context, state) {
-            return Stack(
-              children: [
-                SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. قسم اختيار الفصل الدراسي
-                      _buildSectionTitle("الفصل الدراسي", theme),
-                      const SizedBox(height: 10),
-                      _buildSemesterDropdown(theme),
-                      const SizedBox(height: 20),
-
-                      // 2. قسم اختيار تواريخ الامتحانات (المطلوبة للـ API)
-                      _buildSectionTitle("تواريخ الامتحانات", theme),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDatePickerCard(
-                              title: "تاريخ البدء",
-                              selectedDate: startDate,
-                              icon: Icons.calendar_today,
-                              onTap: () =>
-                                  _pickDate(context, isStartDate: true),
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: _buildDatePickerCard(
-                              title: "تاريخ الانتهاء",
-                              selectedDate: endDate,
-                              icon: Icons.event_available,
-                              onTap: () =>
-                                  _pickDate(context, isStartDate: false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 25),
-
-                      // 3. زر إنشاء الإعدادات
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed:
-                              (selectedSemesterId == null ||
-                                  startDate == null ||
-                                  endDate == null)
-                              ? null
-                              : () {
-                                  // تجهيز البيانات بالهيكل المطلوب
-                                  final configData = {
-                                    "semesterId": selectedSemesterId,
-                                    "academicYear": currentAcademicYear,
-                                    "startDate":
-                                        "${startDate!.year}-${startDate!.month.toString().padLeft(2, '0')}-${startDate!.day.toString().padLeft(2, '0')}",
-                                    "endDate":
-                                        "${endDate!.year}-${endDate!.month.toString().padLeft(2, '0')}-${endDate!.day.toString().padLeft(2, '0')}",
-                                    "excludedDates": ["2026-07-05"],
-                                    "excludedDaysOfWeek": [5, 6],
-                                    "timeslotsPerDay": 3,
-                                    "subjectsConfig": [
-                                      {
-                                        "subjectId": "a9806d537a1d6c94cafd6248",
-                                        "carriedStudentsCount": 5,
-                                        "examDurationOverride": 120,
-                                      },
-                                      {
-                                        "subjectId": "f25686320661e6ec3cdd413c",
-                                        "carriedStudentsCount": 5,
-                                        "examDurationOverride": 90,
-                                      },
-                                    ],
-                                  };
-
-                                  // عرض نافذة التأكيد قبل الإرسال
-                                  _showCreateConfirmationDialog(
-                                    context,
-                                    configData,
-                                  );
-                                },
-                          icon: const Icon(Icons.add_chart),
-                          label: const Text(
-                            "إنشاء إعدادات جديدة للجدولة",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ColorsManager.blue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
-                      // 4. أزرار إدارة إعدادات الفصل وخطوات المعالجة
-                      if (selectedSemesterId != null) ...[
-                        _buildConfigActionButtons(context),
-                        const Divider(height: 40, thickness: 1),
-                        _buildSectionTitle("خطوات معالجة الجدول", theme),
-                        const SizedBox(height: 15),
-                        _buildProcessPipeline(context, state, isDark),
-                      ] else ...[
-                        const SizedBox(height: 40),
-                        Center(
-                          child: Text(
-                            "يرجى اختيار الفصل الدراسي وتواريخ الامتحانات للبدء",
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                if (state is ScheduleSettingLoading)
-                  Container(
-                    color: Colors.black.withOpacity(0.3),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: ColorsManager.blue,
-                      ),
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'إعدادات الجدولة',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<ScheduleSettingCubit, ScheduleSettingState>(
+            listener: (context, state) {
+              // --- معالجة التسلسل الخاص بزر Solve ---
+              if (state is ScheduleConflictLoaded && _isSolvingSequence) {
+                try {
+                  final Map<String, dynamic> timefoldData =
+                      (state.scheduleConflict as dynamic).toJson();
+                  context.read<ScheduleSettingCubit>().solveTimefold(
+                    timefoldData,
+                  );
+                } catch (e) {
+                  _showSnackBar(
+                    context,
+                    'خطأ في تحويل بيانات Timefold',
+                    theme.colorScheme.error,
+                  );
+                  setState(() => _isSolvingSequence = false);
+                }
+              } else if (state is ScheduleSolvetimefoldLoaded &&
+                  _isSolvingSequence) {
+                context.read<ScheduleSettingCubit>().solveSchedule(
+                  "6a37ceda7e2759fcacd44d81",
+                  "2026-2027",
+                );
+              } else if (state is ScheduleSolveLoaded && _isSolvingSequence) {
+                setState(() => _isSolvingSequence = false);
+                _showSnackBar(
+                  context,
+                  'تمت عملية الجدولة (Solve) بنجاح!',
+                  Colors.green,
+                );
+              }
+              // --- معالجة عرض النتائج (Result) ---
+              else if (state is ScheduleResultLoaded) {
+                _showResultDialog(context, state.scheduleResultModel);
+              }
+              // --- معالجة النشر (Publish) ---
+              else if (state is SchedulePublishLoaded) {
+                _showSnackBar(
+                  context,
+                  'تم نشر الجدول للطلاب بنجاح!',
+                  Colors.green,
+                );
+              }
+              // --- الحالات العامة للإعدادات ---
+              else if (state is ScheduleSettingActionResult) {
+                _showSnackBar(context, state.message, Colors.green);
+                _refreshCurrentSemester();
+              } else if (state is UpdateScheduleConfig) {
+                _showSnackBar(context, 'تم التحديث بنجاح', Colors.green);
+                _refreshCurrentSemester();
+              } else if (state is DeleteSuccess) {
+                _showSnackBar(context, state.message, theme.colorScheme.error);
+                setState(() => selectedSemesterId = null);
+              } else if (state is ScheduleSettingError) {
+                setState(() => _isSolvingSequence = false);
+                _showSnackBar(context, state.message, theme.colorScheme.error);
+              }
+            },
+          ),
+        ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 32.0 : 16.0,
+                vertical: 16.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _showSettingsDialog(context),
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('إنشاء إعدادات جديدة'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
                     ),
                   ),
-              ],
-            );
-          },
+                  const SizedBox(height: 24),
+                  _buildSemesterDropdown(theme),
+                  const SizedBox(height: 24),
+                  Expanded(child: _buildSettingsContent(theme)),
+
+                  // --- أزرار العمليات (Solve, Result, Publish) ---
+                  if (selectedSemesterId != null) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    _buildOperationButtons(context, theme),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  // ---- مكونات الواجهة (Widgets) ----
+  void _refreshCurrentSemester() {
+    if (selectedSemesterId != null) {
+      context.read<ScheduleSettingCubit>().getSettingPerSemester(
+        selectedSemesterId,
+      );
+    }
+  }
 
-  Widget _buildSectionTitle(String title, ThemeData theme) {
-    return Text(
-      title,
-      style: theme.textTheme.titleMedium?.copyWith(
-        color: ColorsManager.blue,
-        fontWeight: FontWeight.bold,
+  Widget _buildOperationButtons(BuildContext context, ThemeData theme) {
+    return BlocBuilder<ScheduleSettingCubit, ScheduleSettingState>(
+      builder: (context, state) {
+        final isLoading = state is ScheduleSettingLoading || _isSolvingSequence;
+
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          alignment: WrapAlignment.center,
+          children: [
+            _buildActionButton(
+              label: _isSolvingSequence ? 'جاري الحل...' : 'Solve',
+              icon: Icons.auto_awesome,
+              color: theme.colorScheme.primary,
+              textColor: theme.colorScheme.onPrimary,
+              isLoading: _isSolvingSequence,
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      setState(() => _isSolvingSequence = true);
+                      context.read<ScheduleSettingCubit>().generateScheduleData(
+                        selectedSemesterId!,
+                      );
+                    },
+            ),
+            _buildActionButton(
+              label: 'Result',
+              icon: Icons.table_chart_rounded,
+              color: Colors.orange.shade700,
+              textColor: Colors.white,
+              isLoading:
+                  isLoading &&
+                  !_isSolvingSequence &&
+                  state is! ScheduleSettingLoading,
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      context.read<ScheduleSettingCubit>().getScheduleResult(
+                        selectedSemesterId!,
+                      );
+                    },
+            ),
+            _buildActionButton(
+              label: 'Publish',
+              icon: Icons.campaign_rounded,
+              color: Colors.green.shade700,
+              textColor: Colors.white,
+              isLoading: false,
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      _confirmPublish(context, theme);
+                    },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color textColor,
+    required VoidCallback? onPressed,
+    required bool isLoading,
+  }) {
+    return SizedBox(
+      width: 150,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: textColor,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+        onPressed: onPressed,
+        icon: isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: textColor,
+                  strokeWidth: 2,
+                ),
+              )
+            : Icon(icon, size: 20, color: textColor),
+        label: Text(
+          label,
+          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
+        ),
+      ),
+    );
+  }
+
+  // --- تم تحديث هذه الدالة بالكامل بناءً على بياناتك ---
+  void _showResultDialog(BuildContext context, dynamic resultModel) {
+    // استخراج القائمة من timetable وتحديد نوعها
+    final ScheduleResultModel result = resultModel as ScheduleResultModel;
+    final List<TimetableItem> scheduleItems = result.data?.timetable ?? [];
+
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width > 600;
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: isDesktop ? 900 : size.width * 0.95,
+          constraints: BoxConstraints(maxHeight: size.height * 0.85),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.table_chart, color: Colors.orange.shade700),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: Text(
+                            'نتيجة الجدولة',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: theme.iconTheme.color),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: scheduleItems.isEmpty
+                    ? Center(
+                        child: Text(
+                          'لا توجد بيانات لعرضها',
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            headingRowColor: WidgetStateProperty.all(
+                              theme.colorScheme.primary.withOpacity(0.1),
+                            ),
+                            columns: [
+                              DataColumn(
+                                label: Text(
+                                  'المادة',
+                                  style: theme.textTheme.titleSmall,
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'التاريخ',
+                                  style: theme.textTheme.titleSmall,
+                                ),
+                              ),
+                              DataColumn(
+                                label: Text(
+                                  'الفترة',
+                                  style: theme.textTheme.titleSmall,
+                                ),
+                              ),
+                            ],
+                            rows: scheduleItems.map((item) {
+                              // استخدام خصائص الكائن item بدلاً من الـ Map
+                              return DataRow(
+                                cells: [
+                                  DataCell(
+                                    Text(
+                                      item.subjectName ?? '-',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      item.examDate ?? '-',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                  DataCell(
+                                    Text(
+                                      item.timeslot?.toString() ?? '-',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmPublish(BuildContext context, ThemeData theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        title: Text('تأكيد النشر', style: theme.textTheme.titleLarge),
+        content: Text(
+          'هل أنت متأكد من نشر الجدول؟ سيصبح متاحاً للطلاب لرؤيته.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'إلغاء',
+              style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<ScheduleSettingCubit>().getSchedulePublish(
+                selectedSemesterId!,
+              );
+            },
+            child: const Text('نشر', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSemesterDropdown(ThemeData theme) {
     return BlocBuilder<SemesterCubit, SemesterState>(
-      builder: (context, semesterState) {
-        if (semesterState.runtimeType.toString().contains('Loading')) {
+      builder: (context, state) {
+        if (state is SemesterLoading) {
           return const Center(child: CircularProgressIndicator());
-        }
-
-        List<dynamic> semesterList = [];
-
-        try {
-          semesterList =
-              (semesterState as dynamic).data ??
-              (semesterState as dynamic).semesters ??
-              [];
-        } catch (e) {
-          // تجاهل الخطأ
-        }
-
-        if (semesterList.isEmpty) {
+        } else if (state is SemesterLoaded) {
           return DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: "لا يوجد فصول دراسية متاحة",
-              prefixIcon: Icon(Icons.school_outlined),
+            decoration: InputDecoration(
+              labelText: 'اختر الفصل الدراسي',
+              hintText: 'اضغط لاختيار الفصل من القائمة',
+              prefixIcon: Icon(
+                Icons.calendar_month,
+                color: theme.colorScheme.primary,
+              ),
             ),
-            items: const [],
-            onChanged: null,
-          );
-        }
-
-        return DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-            labelText: "اختر الفصل الدراسي",
-            prefixIcon: Icon(Icons.school_outlined),
-          ),
-          value: selectedSemesterId,
-          items: semesterList.map((semester) {
-            final id = (semester.id ?? '').toString();
-            final name = (semester.name ?? semester.nameAr ?? "فصل بدون اسم")
-                .toString();
-
-            return DropdownMenuItem<String>(value: id, child: Text(name));
-          }).toList(),
-          onChanged: (val) {
-            setState(() {
-              selectedSemesterId = val;
-            });
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildDatePickerCard({
-    required String title,
-    required DateTime? selectedDate,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: ColorsManager.blue),
-                const SizedBox(width: 5),
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+            dropdownColor: theme.colorScheme.surface,
+            value: selectedSemesterId,
+            items: state.semesters.map((semester) {
+              return DropdownMenuItem<String>(
+                value: semester.id,
+                child: Text(
+                  semester.name ?? 'فصل غير مسمى',
+                  style: theme.textTheme.bodyLarge,
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              selectedDate == null
-                  ? "اختر التاريخ"
-                  : "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: selectedDate == null
-                    ? FontWeight.normal
-                    : FontWeight.bold,
-                color: selectedDate == null ? Colors.grey : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConfigActionButtons(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined),
-            label: const Text("تعديل الإعدادات"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorsManager.orange,
-              side: const BorderSide(color: ColorsManager.orange),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => _showDeleteConfirmation(context),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text("حذف الإعدادات"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorsManager.redaccent,
-              side: const BorderSide(color: ColorsManager.redaccent),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProcessPipeline(
-    BuildContext context,
-    ScheduleSettingState state,
-    bool isDark,
-  ) {
-    final cubit = context.read<ScheduleSettingCubit>();
-    return Column(
-      children: [
-        _ActionStepCard(
-          title: "توليد البيانات",
-          description: "جمع بيانات الطلاب، المواد، والتعارضات الأولية.",
-          icon: Icons.data_usage_rounded,
-          buttonText: "توليد (Generate)",
-          onPressed: () {
-            if (selectedSemesterId != null)
-              cubit.generateScheduleData(selectedSemesterId!);
-          },
-          isDark: isDark,
-        ),
-        _ActionStepCard(
-          title: "معالجة Timefold",
-          description: "حل التعارضات المعقدة وتحسين الجدولة برمجياً.",
-          icon: Icons.psychology_outlined,
-          buttonText: "تشغيل Timefold",
-          onPressed: () {
-            if (selectedSemesterId != null) {
-              cubit.solveTimefold({
-                "semesterId": selectedSemesterId,
-                "academicYear": currentAcademicYear,
-              });
-            }
-          },
-          isDark: isDark,
-        ),
-        _ActionStepCard(
-          title: "بناء الجدول (Solve)",
-          description: "تسكين المواد في الأيام والفترات الزمنية المتاحة.",
-          icon: Icons.build_circle_outlined,
-          buttonText: "بناء (Solve)",
-          onPressed: () {
-            if (selectedSemesterId != null)
-              cubit.solveSchedule(selectedSemesterId, currentAcademicYear);
-          },
-          isDark: isDark,
-        ),
-        _ActionStepCard(
-          title: "عرض النتيجة",
-          description: "مراجعة الجدول الزمني قبل نشره للطلاب.",
-          icon: Icons.preview_outlined,
-          buttonText: "عرض (Result)",
-          onPressed: () {
-            if (selectedSemesterId != null)
-              cubit.getScheduleResult(selectedSemesterId!);
-          },
-          isDark: isDark,
-        ),
-        const SizedBox(height: 15),
-        SizedBox(
-          width: double.infinity,
-          height: 55,
-          child: ElevatedButton.icon(
-            onPressed: () {
-              if (selectedSemesterId != null)
-                _showPublishConfirmation(context, cubit);
-            },
-            icon: const Icon(Icons.rocket_launch, color: Colors.white),
-            label: const Text(
-              "نشر الجدول للطلاب (Publish)",
-              style: TextStyle(fontSize: 16, color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.green,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ---- الدوال المساعدة ----
-
-  // دالة عرض النافذة المنبثقة للتأكيد قبل إرسال البيانات
-  void _showCreateConfirmationDialog(
-    BuildContext context,
-    Map<String, dynamic> bodyPayload,
-  ) {
-    // تنسيق الـ JSON ليظهر بشكل جميل
-    final String prettyJson = const JsonEncoder.withIndent(
-      '  ',
-    ).convert(bodyPayload);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.data_object, color: ColorsManager.blue),
-            const SizedBox(width: 10),
-            const Text("تأكيد إرسال الجدولة", style: TextStyle(fontSize: 18)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "يرجى مراجعة البيانات قبل إنشاء الجدولة:",
-                style: theme.textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 15),
-              // مربع عرض الكود JSON
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                ),
-                child: SelectableText(
-                  prettyJson,
-                  textDirection: TextDirection.ltr,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("إلغاء", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.blue,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              // استدعاء دالة الإنشاء من الـ Cubit
-              context.read<ScheduleSettingCubit>().createConfig(bodyPayload);
-            },
-            child: const Text("تأكيد وإرسال"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickDate(
-    BuildContext context, {
-    required bool isStartDate,
-  }) async {
-    final initialDate = isStartDate
-        ? (startDate ?? DateTime.now())
-        : (endDate ?? (startDate ?? DateTime.now()));
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: ColorsManager.blue),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (pickedDate != null) {
-      setState(() {
-        if (isStartDate) {
-          startDate = pickedDate;
-          if (endDate != null && endDate!.isBefore(startDate!)) {
-            endDate = null;
-          }
-        } else {
-          if (startDate != null && pickedDate.isBefore(startDate!)) {
-            _showSnackBar(
-              context,
-              "تاريخ الانتهاء لا يمكن أن يكون قبل تاريخ البدء",
-              ColorsManager.redaccent,
-            );
-          } else {
-            endDate = pickedDate;
-          }
-        }
-      });
-    }
-  }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("تأكيد الحذف"),
-        content: const Text(
-          "هل أنت متأكد من حذف إعدادات الجدولة لهذا الفصل؟ لا يمكن التراجع عن هذا الإجراء.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("إلغاء"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.redaccent,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (selectedSemesterId != null) {
-                context.read<ScheduleSettingCubit>().deleteScheduleConfig(
-                  selectedSemesterId!,
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() => selectedSemesterId = value);
+              if (value != null) {
+                context.read<ScheduleSettingCubit>().getSettingPerSemester(
+                  value,
                 );
               }
             },
-            child: const Text("حذف", style: TextStyle(color: Colors.white)),
+          );
+        } else if (state is SemesterError) {
+          return Text(
+            'خطأ: ${state.message}',
+            style: TextStyle(color: theme.colorScheme.error),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildSettingsContent(ThemeData theme) {
+    return BlocBuilder<ScheduleSettingCubit, ScheduleSettingState>(
+      buildWhen: (previous, current) =>
+          current is SettingPerSemesterLoaded ||
+          current is ScheduleSettingLoading,
+      builder: (context, state) {
+        if (selectedSemesterId == null) {
+          return _buildEmptyState('يرجى اختيار فصل دراسي لعرض إعداداته', theme);
+        }
+
+        if (state is ScheduleSettingLoading && !_isSolvingSequence) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is SettingPerSemesterLoaded) {
+          final config = state.settingPerSemesterModel.data;
+          if (config == null) {
+            return _buildEmptyState('لا توجد إعدادات لهذا الفصل.', theme);
+          }
+
+          final configId = (config as dynamic).sId ?? (config as dynamic).id;
+
+          return SingleChildScrollView(
+            child: Card(
+              color: theme.colorScheme.surface,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'تفاصيل الإعدادات',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                color: theme.colorScheme.primary,
+                              ),
+                              onPressed: () => _showSettingsDialog(
+                                context,
+                                existingData: config,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                color: theme.colorScheme.error,
+                              ),
+                              onPressed: () =>
+                                  _confirmDelete(context, configId, theme),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 30),
+                    _buildInfoRow(
+                      'العام الدراسي:',
+                      config.academicYear ?? '',
+                      theme,
+                    ),
+                    _buildInfoRow(
+                      'تاريخ البداية:',
+                      config.startDate ?? '',
+                      theme,
+                    ),
+                    _buildInfoRow(
+                      'تاريخ النهاية:',
+                      config.endDate ?? '',
+                      theme,
+                    ),
+                    _buildInfoRow(
+                      'الفترات يومياً:',
+                      '${config.timeslotsPerDay ?? 0}',
+                      theme,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(value, style: theme.textTheme.bodyLarge),
           ),
         ],
       ),
     );
   }
 
-  void _showPublishConfirmation(
-    BuildContext context,
-    ScheduleSettingCubit cubit,
-  ) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("تأكيد النشر"),
-        content: const Text(
-          "هل أنت متأكد من نشر هذا الجدول؟ سيظهر مباشرة في تطبيق الطلاب.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("إلغاء"),
+  Widget _buildEmptyState(String message, ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.settings_suggest,
+            size: 80,
+            color: theme.colorScheme.onSurface.withOpacity(0.3),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.green,
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (selectedSemesterId != null)
-                cubit.getSchedulePublish(selectedSemesterId!);
-            },
-            child: const Text(
-              "تأكيد النشر",
-              style: TextStyle(color: Colors.white),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _confirmDelete(BuildContext context, String? configId, ThemeData theme) {
+    if (configId == null) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        title: Text('تأكيد الحذف', style: theme.textTheme.titleLarge),
+        content: Text(
+          'هل أنت متأكد من حذف هذه الإعدادات؟',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'إلغاء',
+              style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<ScheduleSettingCubit>().deleteScheduleConfig(
+                configId,
+              );
+            },
+            child: Text(
+              'حذف',
+              style: TextStyle(color: theme.colorScheme.onError),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSettingsDialog(BuildContext context, {dynamic existingData}) {
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width > 600;
+    final theme = Theme.of(context);
+
+    // 1. التقاط الـ Cubits من السياق الحالي (قبل فتح الـ Dialog)
+    final semesterCubit = context.read<SemesterCubit>();
+    final scheduleSettingCubit = context.read<ScheduleSettingCubit>();
+
+    // القيم المبدئية
+    String? dialogSelectedSemesterId = existingData?.semesterId is String
+        ? existingData?.semesterId
+        : (existingData?.semesterId?.sId ??
+              existingData?.semesterId?.id ??
+              selectedSemesterId);
+
+    final academicYearCtrl = TextEditingController(
+      text: existingData?.academicYear ?? '2025-2026',
+    );
+    final startDateCtrl = TextEditingController(
+      text: existingData?.startDate ?? '',
+    );
+    final endDateCtrl = TextEditingController(
+      text: existingData?.endDate ?? '',
+    );
+    final timeslotsCtrl = TextEditingController(
+      text: existingData?.timeslotsPerDay?.toString() ?? '3',
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => MultiBlocProvider(
+        // 2. تمرير الـ Cubits عبر MultiBlocProvider
+        providers: [
+          BlocProvider.value(value: semesterCubit),
+          BlocProvider.value(value: scheduleSettingCubit),
+        ],
+        child: Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setStateDialog) {
+              return Container(
+                width: isDesktop ? 550 : size.width * 0.95,
+                constraints: BoxConstraints(maxHeight: size.height * 0.85),
+                decoration: BoxDecoration(
+                  color: theme.scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // الهيدر
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 20,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.05),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              existingData == null
+                                  ? 'إنشاء إعدادات جديدة'
+                                  : 'تعديل الإعدادات',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              color: theme.iconTheme.color,
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // الحقول
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            BlocBuilder<SemesterCubit, SemesterState>(
+                              builder: (context, state) {
+                                if (state is SemesterLoaded) {
+                                  final isValueValid = state.semesters.any(
+                                    (s) => s.id == dialogSelectedSemesterId,
+                                  );
+
+                                  return DropdownButtonFormField<String>(
+                                    value: isValueValid
+                                        ? dialogSelectedSemesterId
+                                        : null,
+                                    dropdownColor: theme.colorScheme.surface,
+                                    decoration: InputDecoration(
+                                      labelText: 'الفصل الدراسي',
+                                      hintText: 'اختر الفصل الدراسي من القائمة',
+                                      prefixIcon: Icon(
+                                        Icons.school,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                    items: state.semesters.map((semester) {
+                                      return DropdownMenuItem<String>(
+                                        value: semester.id,
+                                        child: Text(
+                                          semester.name ?? 'فصل غير مسمى',
+                                          style: theme.textTheme.bodyLarge,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setStateDialog(
+                                        () => dialogSelectedSemesterId = value,
+                                      );
+                                    },
+                                  );
+                                } else if (state is SemesterLoading) {
+                                  return const CircularProgressIndicator();
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: academicYearCtrl,
+                              style: theme.textTheme.bodyLarge,
+                              decoration: InputDecoration(
+                                labelText: 'العام الدراسي',
+                                hintText: 'مثال: 2025-2026',
+                                prefixIcon: Icon(
+                                  Icons.date_range,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: startDateCtrl,
+                              style: theme.textTheme.bodyLarge,
+                              decoration: InputDecoration(
+                                labelText: 'تاريخ البداية',
+                                hintText: 'اختر تاريخ بدء الفصل',
+                                prefixIcon: Icon(
+                                  Icons.calendar_month,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              readOnly: true,
+                              onTap: () => _selectDate(context, startDateCtrl),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: endDateCtrl,
+                              style: theme.textTheme.bodyLarge,
+                              decoration: InputDecoration(
+                                labelText: 'تاريخ النهاية',
+                                hintText: 'اختر تاريخ نهاية الفصل',
+                                prefixIcon: Icon(
+                                  Icons.event_busy,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              readOnly: true,
+                              onTap: () => _selectDate(context, endDateCtrl),
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: timeslotsCtrl,
+                              style: theme.textTheme.bodyLarge,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'عدد الفترات يومياً',
+                                hintText: 'مثال: 3',
+                                prefixIcon: Icon(
+                                  Icons.access_time,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // أزرار الحفظ
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: Text(
+                                'إلغاء',
+                                style: TextStyle(
+                                  color: theme.textTheme.bodyLarge?.color,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                              ),
+                              onPressed: () {
+                                if (dialogSelectedSemesterId == null) {
+                                  _showSnackBar(
+                                    context,
+                                    'يرجى اختيار الفصل الدراسي أولاً',
+                                    theme.colorScheme.error,
+                                  );
+                                  return;
+                                }
+
+                                final configData = {
+                                  "semesterId": dialogSelectedSemesterId,
+                                  "academicYear": academicYearCtrl.text,
+                                  "startDate": startDateCtrl.text,
+                                  "endDate": endDateCtrl.text,
+                                  "excludedDates": ["2026-07-05"],
+                                  "excludedDaysOfWeek": [5, 6],
+                                  "timeslotsPerDay":
+                                      int.tryParse(timeslotsCtrl.text) ?? 3,
+                                  "subjectsConfig": [
+                                    {
+                                      "subjectId": "6a3d2d9bedcb44989eaa5e37",
+                                      "carriedStudentsCount": 45,
+                                      "examDurationOverride": 120,
+                                    },
+                                  ],
+                                };
+
+                                Navigator.pop(ctx);
+                                if (existingData == null) {
+                                  context
+                                      .read<ScheduleSettingCubit>()
+                                      .createConfig(configData);
+                                } else {
+                                  final targetId =
+                                      (existingData as dynamic).sId ??
+                                      (existingData as dynamic).id;
+                                  context
+                                      .read<ScheduleSettingCubit>()
+                                      .updateScheduleConfig(
+                                        targetId,
+                                        configData,
+                                      );
+                                }
+                              },
+                              child: Text(
+                                existingData == null ? 'إنشاء' : 'حفظ',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(data: Theme.of(context), child: child!);
+      },
+    );
+    if (picked != null) {
+      controller.text =
+          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+    }
   }
 
   void _showSnackBar(BuildContext context, String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-}
-
-class _ActionStepCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final IconData icon;
-  final String buttonText;
-  final VoidCallback onPressed;
-  final bool isDark;
-
-  const _ActionStepCard({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.buttonText,
-    required this.onPressed,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
-      color: isDark ? ColorsManager.deepNavy : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark ? Colors.transparent : Colors.grey.withOpacity(0.2),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: ColorsManager.blue.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: ColorsManager.blue, size: 28),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? ColorsManager.darkGreyText
-                          : ColorsManager.greyText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(buttonText),
-            ),
-          ],
-        ),
       ),
     );
   }

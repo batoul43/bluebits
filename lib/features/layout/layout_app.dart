@@ -44,7 +44,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LayoutApp extends StatefulWidget {
-  LayoutApp({super.key});
+  const LayoutApp({super.key});
 
   @override
   State<LayoutApp> createState() => _LayoutAppState();
@@ -64,10 +64,10 @@ class _LayoutAppState extends State<LayoutApp> {
   void initState() {
     super.initState();
     _pages = [
-      HomeScreen(),
+      const HomeScreen(),
       BlocProvider(
         create: (context) => LecturesCubit()..backToYears(),
-        child: LecturesScreen(),
+        child: const LecturesScreen(),
       ),
       BlocProvider(
         create: (context) => BankCubit()..backTOYear(),
@@ -80,12 +80,11 @@ class _LayoutAppState extends State<LayoutApp> {
         ],
         child: TasksScreen(),
       ),
-      ProfileScreen(),
-      AdminControlPanelScreen(),
-      // تم الاكتفاء باستدعاء الشاشة هنا، لأن الـ Providers تم تعريفها في الـ build أسفل
-      AdminSurveyScreen(),
-      StudentSurveysScreen(),
-      ScheduleManagementScreen(),
+      const ProfileScreen(),
+      const AdminControlPanelScreen(),
+      const AdminSurveyScreen(),
+      const StudentSurveysScreen(),
+      const ScheduleSettingsScreen(),
     ];
 
     _loadProfile();
@@ -108,9 +107,8 @@ class _LayoutAppState extends State<LayoutApp> {
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
-
-    // تعريف متغيرات الثيم لتسهيل الاستخدام
     final theme = Theme.of(context);
+
     return BlocProvider.value(
       value: _profileCubit,
       child: MultiBlocProvider(
@@ -137,7 +135,7 @@ class _LayoutAppState extends State<LayoutApp> {
           BlocProvider(
             create: (context) => AdminSurveyCubit(
               repository: AdminSurveyRepository(AdminSurveyApiService()),
-            )..fetchAllForms(), // جلب البيانات تلقائياً عند فتح الشاشة
+            )..fetchAllForms(),
           ),
           BlocProvider(
             create: (context) => StudentSurveyCubit(
@@ -152,20 +150,36 @@ class _LayoutAppState extends State<LayoutApp> {
             ),
           ),
         ],
-        child: Scaffold(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          drawer: _buildSideDrawer(screenWidth, context),
-          appBar: CustomAppBar(),
-          floatingActionButton: ChatBotFab(),
-          body: SafeArea(
-            child: ValueListenableBuilder(
-              valueListenable: _selectedDrawerIndex,
-              builder: (context, selectedDrawerIndex, child) {
-                return IndexedStack(
-                  index: selectedDrawerIndex,
-                  children: _pages,
-                );
-              },
+        // تم نقل BlocListener ليغلف Scaffold بالكامل لضمان عمله حتى بعد إغلاق الـ Drawer
+        child: BlocListener<AuthCubit, AuthState>(
+          listener: (context, state) {
+            if (state is AuthLogoutFailed) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+            } else if (state is AuthLogoutSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم تسجيل الخروج بنجاح')),
+              );
+              // أضف كود التوجيه لشاشة تسجيل الدخول هنا، مثال:
+              // Navigator.pushReplacementNamed(context, '/login');
+            }
+          },
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            drawer: _buildSideDrawer(screenWidth, context),
+            appBar: CustomAppBar(),
+            floatingActionButton: ChatBotFab(),
+            body: SafeArea(
+              child: ValueListenableBuilder(
+                valueListenable: _selectedDrawerIndex,
+                builder: (context, selectedDrawerIndex, child) {
+                  return IndexedStack(
+                    index: selectedDrawerIndex,
+                    children: _pages,
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -226,14 +240,16 @@ class _LayoutAppState extends State<LayoutApp> {
 
     return Drawer(
       width: width * 0.75,
-      backgroundColor: colorScheme.surface, // يتغير حسب الثيم
+      backgroundColor: colorScheme.surface,
       child: Column(
         children: [
           BlocBuilder<ProfileCubit, ProfileState>(
             builder: (context, state) {
               String accountName = "مستخدم";
               String accountEmail = "غير متوفر";
-              ImageProvider avatar = AssetImage('assets/images/avatar.png');
+              ImageProvider avatar = const AssetImage(
+                'assets/images/avatar.png',
+              );
 
               if (state is ProfileSuccess) {
                 accountName = state.data.name ?? accountName;
@@ -252,7 +268,7 @@ class _LayoutAppState extends State<LayoutApp> {
                   backgroundColor: colorScheme.primary.withOpacity(0.1),
                   backgroundImage: avatar,
                   onBackgroundImageError: (exception, stackTrace) {
-                    // التقاط خطأ جلب الصورة (500) بصمت لتجنب انهيار الواجهة
+                    // التقاط خطأ جلب الصورة بصمت لتجنب انهيار الواجهة
                   },
                 ),
                 accountName: Text(
@@ -309,7 +325,6 @@ class _LayoutAppState extends State<LayoutApp> {
                   width,
                   context,
                 ),
-
                 _buildDrawerTile(
                   5,
                   Icons.admin_panel_settings,
@@ -333,7 +348,7 @@ class _LayoutAppState extends State<LayoutApp> {
                 ),
                 _buildDrawerTile(
                   8,
-                  Icons.edit_calendar_outlined, // أيقونة معبرة عن الجداول
+                  Icons.edit_calendar_outlined,
                   "إعدادات الجدولة",
                   width,
                   context,
@@ -342,32 +357,19 @@ class _LayoutAppState extends State<LayoutApp> {
             ),
           ),
           const Divider(),
+          // تم تبسيط زر تسجيل الخروج بعد نقل BlocListener للخارج
           ListTile(
             leading: Icon(Icons.logout, color: colorScheme.error),
-            title: BlocListener<AuthCubit, AuthState>(
-              listener: (context, state) {
-                if (state is AuthLogoutFailed) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(state.message)));
-                } else if (state is AuthLogoutSuccess) {
-                  Navigator.pop(context);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('تم تسجيل الخروج بنجاح')),
-                  );
-                }
-              },
-              child: Text(
-                "تسجيل الخروج",
-                style: TextStyle(
-                  color: colorScheme.error,
-                  fontWeight: FontWeight.bold,
-                ),
+            title: Text(
+              "تسجيل الخروج",
+              style: TextStyle(
+                color: colorScheme.error,
+                fontWeight: FontWeight.bold,
               ),
             ),
             onTap: () {
-              context.read<AuthCubit>().logout();
+              Navigator.pop(context); // إغلاق الـ Drawer أولاً
+              context.read<AuthCubit>().logout(); // تنفيذ دالة تسجيل الخروج
             },
           ),
           const SizedBox(height: 20),

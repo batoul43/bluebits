@@ -67,10 +67,10 @@ class ScheduleConfigData {
     startDate = json['startDate'];
     endDate = json['endDate'];
     excludedDates = json['excludedDates'] != null
-        ? json['excludedDates'].cast<String>()
+        ? List<String>.from(json['excludedDates'])
         : [];
     excludedDaysOfWeek = json['excludedDaysOfWeek'] != null
-        ? json['excludedDaysOfWeek'].cast<int>()
+        ? List<int>.from(json['excludedDaysOfWeek'])
         : [];
     timeslotsPerDay = json['timeslotsPerDay'];
     if (json['subjectsConfig'] != null) {
