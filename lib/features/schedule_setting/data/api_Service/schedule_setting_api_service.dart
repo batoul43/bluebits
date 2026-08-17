@@ -178,7 +178,7 @@ class ScheduleSettingApiService {
     try {
       final response = await http.patch(
         // يرجى التأكد من مطابقة هذا الرابط مع مسار الباك إند الفعلي
-        Uri.parse('$baseUrl/publish/$semesterId'),
+        Uri.parse('$baseUrl/result/$semesterId/publish'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
