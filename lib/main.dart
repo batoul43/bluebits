@@ -5,6 +5,9 @@ import 'package:bluebits_app/core/constant/constant.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
 import 'package:bluebits_app/core/theming/app_theme.dart';
 import 'package:bluebits_app/core/theming/colors.dart'; // تم استدعاء ملف الألوان
+import 'package:bluebits_app/features/ai/data/api_Service/ai_api_service.dart';
+import 'package:bluebits_app/features/ai/data/repository/ai_repository.dart';
+import 'package:bluebits_app/features/ai/presentation/logic/ai_cubit.dart';
 import 'package:bluebits_app/features/auth/data/api_service/auth_api.dart';
 import 'package:bluebits_app/features/auth/data/repository/auth_repo.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
@@ -37,6 +40,10 @@ Future<void> main() async {
         BlocProvider(
           create: (context) =>
               ProfileCubit(repo: ProfileRepo(profileApi: ProfileApi())),
+        ),
+        BlocProvider(
+          create: (context) =>
+              AiCubit(repository: AiRepository(AiApiService())),
         ),
       ],
       child: const MainApp(),

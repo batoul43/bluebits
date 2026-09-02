@@ -52,7 +52,11 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
             _showSnackBar(context, state.message, ColorsManager.green);
           } else if (state is StudentSurveyError) {
             _closeLoadingDialog(context);
-            _showSnackBar(context, state.message, theme.colorScheme.error);
+            // التعديل هنا: منع ظهور الشريط الأحمر عند فتح الصفحة لأول مرة
+            // سيظهر فقط إذا كانت الصفحة محملة مسبقاً وحدث خطأ أثناء إجراء آخر كالإرسال
+            if (_cachedSurveys.isNotEmpty) {
+              _showSnackBar(context, state.message, theme.colorScheme.error);
+            }
           } else if (state is StudentSurveyDetailLoaded) {
             _closeLoadingDialog(context);
             _showResponseDetailsDialog(

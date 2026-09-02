@@ -55,7 +55,7 @@ class AdminSectionContainer extends StatelessWidget {
             ],
           ),
           const Divider(height: 30, thickness: 0.5),
-          child,
+          Material(color: Colors.transparent, child: child),
         ],
       ),
     );

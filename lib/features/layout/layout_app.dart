@@ -4,6 +4,9 @@ import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubi
 import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_lecture_api_service.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/lessonlecturecubit/lesson_lecture_cubit.dart';
+import 'package:bluebits_app/core/shares/question_banks/data/api_service/question_bank_api_service.dart';
+import 'package:bluebits_app/core/shares/question_banks/data/repository/question_banks_repository.dart';
+import 'package:bluebits_app/core/shares/question_banks/logic/question_bank_cubit.dart';
 import 'package:bluebits_app/core/shares/semester/data/api_service/semester_api_service.dart';
 import 'package:bluebits_app/core/shares/semester/data/repositry/semester_repositry.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
@@ -17,6 +20,9 @@ import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/chat_bot_fab.dart';
 import 'package:bluebits_app/core/widget/custom_app_bar.dart';
 import 'package:bluebits_app/features/admin_control_panel_screen/presentation/screens/admin_control_panel_screen.dart';
+import 'package:bluebits_app/features/ai/data/api_Service/ai_api_service.dart';
+import 'package:bluebits_app/features/ai/data/repository/ai_repository.dart';
+import 'package:bluebits_app/features/ai/presentation/logic/ai_cubit.dart';
 import 'package:bluebits_app/features/auth/presentation/logic/cubit/auth_cubit.dart';
 import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
@@ -72,8 +78,15 @@ class _LayoutAppState extends State<LayoutApp> {
         create: (context) => LecturesCubit()..backToYears(),
         child: const LecturesScreen(),
       ),
-      BlocProvider(
-        create: (context) => BankCubit()..backTOYear(),
+      MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (context) => BankCubit()..backTOYear()),
+          BlocProvider(
+            create: (context) => QuestionBankCubit(
+              repository: QuestionBankRepository(QuestionBankApiService()),
+            ),
+          ),
+        ],
         child: QuestionBanksScreen(),
       ),
       MultiBlocProvider(
@@ -213,34 +226,34 @@ class _LayoutAppState extends State<LayoutApp> {
     return StatefulBuilder(
       builder: (context, setStateDrowerTile) {
         bool isSelected = _selectedDrawerIndex.value == index;
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: Material(
             color: isSelected ? colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(15),
-          ),
-          child: ListTile(
-            leading: Icon(
-              icon,
-              color: isSelected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface.withOpacity(0.7),
-            ),
-            title: Text(
-              title,
-              style: TextStyle(
+            child: ListTile(
+              leading: Icon(
+                icon,
                 color: isSelected
                     ? colorScheme.onPrimary
-                    : colorScheme.onSurface,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    : colorScheme.onSurface.withOpacity(0.7),
               ),
+              title: Text(
+                title,
+                style: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurface,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              onTap: () {
+                setStateDrowerTile(() {
+                  _selectedDrawerIndex.value = index;
+                });
+                Navigator.pop(context);
+              },
             ),
-            onTap: () {
-              setStateDrowerTile(() {
-                _selectedDrawerIndex.value = index;
-              });
-              Navigator.pop(context);
-            },
           ),
         );
       },

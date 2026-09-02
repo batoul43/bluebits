@@ -6,7 +6,6 @@ import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dar
 import 'package:bluebits_app/core/theming/colors.dart'; // الاعتماد على الألوان المخصصة للتطبيق
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
-import 'package:bluebits_app/features/lectures/presentation/widget/app_search_headers.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/semester_card.dart';
 import 'package:bluebits_app/core/widget/year_card.dart';
@@ -103,8 +102,8 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     const SizedBox(height: 20),
 
                     // 2. شريط البحث
-                    const AppSearchBar(hintText: "ابحث عن محاضرة بسرعة..."),
-                    const SizedBox(height: 25),
+                    // const AppSearchBar(hintText: "ابحث عن محاضرة بسرعة..."),
+                    const SizedBox(height: 20),
 
                     // 3. المحتوى الديناميكي المصمم بشكل متناسق واحترافي
                     AnimatedContainer(
