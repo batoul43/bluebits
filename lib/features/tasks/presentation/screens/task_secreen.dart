@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubit.dart';
 import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
 import 'package:bluebits_app/core/theming/colors.dart';
@@ -39,285 +40,40 @@ class TasksScreen extends StatelessWidget {
                   title: 'المهام الشخصية',
                   subtitle: 'إدارة مشفرة لخصوصيتك اليومية على جهازك',
                 ),
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  height: screenHeight * 0.004,
-                  width: screenWidth * 0.60,
-                  color: theme.colorScheme.primary,
-                ),
+                _buildDivider(theme, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.03),
 
                 // ==========================================
                 // 1. قسم المهام الشخصية
                 // ==========================================
-                BlocBuilder<TaskCubit, TaskState>(
-                  builder: (context, state) {
-                    if (state is TaskInitial) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (state is TasksError) {
-                      return Center(
-                        child: Text(
-                          state.message,
-                          style: TextStyle(color: theme.colorScheme.error),
-                        ),
-                      );
-                    }
-
-                    if (state is TasksLoaded) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
-                              blurRadius: screenWidth * 0.04,
-                              offset: Offset(0, screenHeight * 0.006),
-                            ),
-                          ],
-                        ),
-                        padding: EdgeInsets.all(screenWidth * 0.04),
-                        child: Column(
-                          children: [
-                            _buildAddTaskField(
-                              context,
-                              theme,
-                              screenWidth,
-                              screenHeight,
-                            ),
-                            SizedBox(height: screenHeight * 0.02),
-                            Divider(
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.1,
-                              ),
-                              thickness: 1,
-                            ),
-                            if (state.filteredTasks.isEmpty)
-                              Padding(
-                                padding: EdgeInsets.all(screenWidth * 0.05),
-                                child: Text(
-                                  "لا توجد مهام حالياً",
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              )
-                            else
-                              _buildTasksList(
-                                context,
-                                state,
-                                theme,
-                                screenWidth,
-                                screenHeight,
-                              ),
-                          ],
-                        ),
-                      );
-                    }
-                    return const SizedBox();
-                  },
+                _buildPersonalTasksSection(
+                  context,
+                  theme,
+                  screenWidth,
+                  screenHeight,
                 ),
-
                 SizedBox(height: screenHeight * 0.04),
 
                 // ==========================================
                 // 2. قسم البومودورو
                 // ==========================================
-                _buildPomodoroCard(screenWidth, screenHeight),
+                _buildPomodoroCard(context, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.05),
 
                 // ==========================================
-                // 3. قسم المهام الأكاديمية (الربط مع SubjectCubit)
+                // 3. قسم المهام الأكاديمية
                 // ==========================================
                 const PageHeader(title: 'المهام الأكاديمية', subtitle: ''),
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  height: screenHeight * 0.004,
-                  width: screenWidth * 0.60,
-                  color: theme.colorScheme.primary,
-                ),
+                _buildDivider(theme, screenWidth, screenHeight),
                 SizedBox(height: screenHeight * 0.03),
 
-                Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  child: BlocBuilder<AcadimmictaskCubit, AcadimictaskState>(
-                    builder: (context, acadimicState) {
-                      // ----------------------------------------
-                      // الحالة الأولى: عرض شبكة السنوات
-                      // ----------------------------------------
-                      if (acadimicState is TaskYearAcadimic) {
-                        return BlocBuilder<YearCubit, YearState>(
-                          builder: (context, yearState) {
-                            if (yearState is YearLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            } else if (yearState is YearError) {
-                              return Center(
-                                child: Text(
-                                  yearState.message,
-                                  style: TextStyle(
-                                    color: theme.colorScheme.error,
-                                  ),
-                                ),
-                              );
-                            } else if (yearState is YearLoaded) {
-                              final yearsList = yearState.years;
-
-                              if (yearsList.isEmpty) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: Text(
-                                      "لا توجد سنوات دراسية مضافة بعد",
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              return GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: screenWidth > 600 ? 3 : 2,
-                                      crossAxisSpacing: 15,
-                                      mainAxisSpacing: 15,
-                                      childAspectRatio: 0.85,
-                                    ),
-                                itemCount: yearsList.length,
-                                itemBuilder: (context, index) {
-                                  final yearItem = yearsList[index];
-                                  return YearCard(
-                                    title: yearItem.name ?? "بدون اسم",
-                                    onTap: () {
-                                      // 1. تغيير واجهة المستخدم لعرض المواد (UI State)
-                                      context
-                                          .read<AcadimmictaskCubit>()
-                                          .displaySubjects(yearItem.name ?? "");
-
-                                      // 2. جلب المواد من السيرفر عبر الكيوبت (Data State)
-                                      final yearId =
-                                          yearItem.sId ??
-                                          yearItem.sId.toString();
-                                      context
-                                          .read<SubjectCubit>()
-                                          .getSubjectsByYear(yearId);
-                                    },
-                                  );
-                                },
-                              );
-                            }
-                            return const SizedBox();
-                          },
-                        );
-                      }
-
-                      // ----------------------------------------
-                      // الحالة الثانية: عرض قائمة المواد أو زر العودة
-                      // ----------------------------------------
-                      return Column(
-                        children: [
-                          if (acadimicState is! TaskYearAcadimic)
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: TextButton(
-                                child: Text(
-                                  "تغيير السنة",
-                                  style: TextStyle(
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
-                                onPressed: () {
-                                  context
-                                      .read<AcadimmictaskCubit>()
-                                      .backTOYear();
-                                },
-                              ),
-                            ),
-
-                          if (acadimicState is TaskSubjectAcadimic)
-                            // هنا نراقب SubjectCubit للحصول على البيانات الحقيقية
-                            BlocBuilder<SubjectCubit, SubjectState>(
-                              builder: (context, subjectState) {
-                                if (subjectState is GetSubjectsLoading) {
-                                  return const Padding(
-                                    padding: EdgeInsets.all(20.0),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
-                                } else if (subjectState is GetSubjectsFailure) {
-                                  return Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Text(
-                                        subjectState.errorMessage,
-                                        style: TextStyle(
-                                          color: theme.colorScheme.error,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                } else if (subjectState
-                                    is GetSubjectsByYearAnsSemester) {
-                                  // استخراج قائمة المواد من الموديل
-                                  final subjectsList =
-                                      subjectState
-                                          .subjectsByYearSemester
-                                          .data
-                                          ?.subjects ??
-                                      [];
-
-                                  if (subjectsList.isEmpty) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: Text(
-                                          "لا تتوفر مواد لهذه السنة حالياً",
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  return ListView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: subjectsList.length,
-                                    itemBuilder: (context, index) {
-                                      final subject = subjectsList[index];
-                                      return SubjectCard(
-                                        isbank: true,
-                                        onTap: () {
-                                          // عند الضغط على مادة معينة لعرض الأنواع (Types)
-                                          // context.read<AcadimmictaskCubit>().displayType(acadimicState.selectedYear, subject.name ?? "");
-                                        },
-                                        year: acadimicState.selectedYear,
-                                        title: subject.name ?? "مادة بدون اسم",
-                                        icon: const Icon(
-                                          Icons.arrow_drop_down_rounded,
-                                          color: ColorsManager.orange,
-                                          size: 22,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                }
-                                return const SizedBox();
-                              },
-                            )
-                          else
-                            const SizedBox(),
-                        ],
-                      );
-                    },
-                  ),
+                _buildAcademicSection(
+                  context,
+                  theme,
+                  screenWidth,
+                  screenHeight,
                 ),
+
                 SizedBox(height: screenHeight * 0.05),
               ],
             ),
@@ -327,7 +83,89 @@ class TasksScreen extends StatelessWidget {
     );
   }
 
-  // ----------- توابع البناء المنفصلة (كما هي بدون تغيير) -----------
+  // ==========================================
+  // توابع البناء المنفصلة (Clean Code Widgets)
+  // ==========================================
+
+  Widget _buildDivider(
+    ThemeData theme,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      height: screenHeight * 0.004,
+      width: screenWidth * 0.60,
+      color: theme.colorScheme.primary,
+    );
+  }
+
+  // --- قسم المهام الشخصية ---
+  Widget _buildPersonalTasksSection(
+    BuildContext context,
+    ThemeData theme,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    return BlocBuilder<TaskCubit, TaskState>(
+      builder: (context, state) {
+        if (state is TaskInitial) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (state is TasksError) {
+          return Center(
+            child: Text(
+              state.message,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          );
+        }
+        if (state is TasksLoaded) {
+          return Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: screenWidth * 0.04,
+                  offset: Offset(0, screenHeight * 0.006),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(screenWidth * 0.04),
+            child: Column(
+              children: [
+                _buildAddTaskField(context, theme, screenWidth, screenHeight),
+                SizedBox(height: screenHeight * 0.02),
+                Divider(
+                  color: theme.colorScheme.onSurface.withOpacity(0.1),
+                  thickness: 1,
+                ),
+                if (state.filteredTasks.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.all(screenWidth * 0.05),
+                    child: Text(
+                      "لا توجد مهام حالياً",
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  )
+                else
+                  _buildTasksList(
+                    context,
+                    state,
+                    theme,
+                    screenWidth,
+                    screenHeight,
+                  ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
 
   Widget _buildAddTaskField(
     BuildContext context,
@@ -453,7 +291,12 @@ class TasksScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPomodoroCard(double screenWidth, double screenHeight) {
+  // --- قسم البومودورو ---
+  Widget _buildPomodoroCard(
+    BuildContext context,
+    double screenWidth,
+    double screenHeight,
+  ) {
     return Container(
       width: screenWidth,
       decoration: BoxDecoration(
@@ -551,6 +394,364 @@ class TasksScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  // --- قسم المهام الأكاديمية (السنوات والمواد) ---
+  Widget _buildAcademicSection(
+    BuildContext context,
+    ThemeData theme,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(screenWidth * 0.04),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(screenWidth * 0.06),
+      ),
+      child: BlocBuilder<AcadimmictaskCubit, AcadimictaskState>(
+        builder: (context, acadimicState) {
+          if (acadimicState is TaskYearAcadimic) {
+            return _buildYearsGrid(screenWidth, theme);
+          }
+          return _buildSubjectsList(
+            context,
+            acadimicState,
+            theme,
+            screenWidth,
+            screenHeight,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildYearsGrid(double screenWidth, ThemeData theme) {
+    return BlocBuilder<YearCubit, YearState>(
+      builder: (context, yearState) {
+        if (yearState is YearLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (yearState is YearError) {
+          return Center(
+            child: Text(
+              yearState.message,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
+          );
+        } else if (yearState is YearLoaded) {
+          if (yearState.years.isEmpty) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text("لا توجد سنوات دراسية مضافة بعد"),
+              ),
+            );
+          }
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: screenWidth > 600 ? 3 : 2,
+              crossAxisSpacing: screenWidth * 0.04,
+              mainAxisSpacing: screenWidth * 0.04,
+              childAspectRatio: 0.85,
+            ),
+            itemCount: yearState.years.length,
+            itemBuilder: (context, index) {
+              final yearItem = yearState.years[index];
+              return YearCard(
+                title: yearItem.name ?? "بدون اسم",
+                onTap: () {
+                  context.read<AcadimmictaskCubit>().displaySubjects(
+                    yearItem.name ?? "",
+                  );
+                  final yearId = yearItem.sId ?? yearItem.sId.toString();
+                  context.read<SubjectCubit>().getSubjectsByYear(yearId);
+                },
+              );
+            },
+          );
+        }
+        return const SizedBox();
+      },
+    );
+  }
+
+  Widget _buildSubjectsList(
+    BuildContext context,
+    AcadimictaskState acadimicState,
+    ThemeData theme,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    return Column(
+      children: [
+        if (acadimicState is! TaskYearAcadimic)
+          Align(
+            alignment: Alignment.topLeft,
+            child: TextButton(
+              onPressed: () => context.read<AcadimmictaskCubit>().backTOYear(),
+              child: Text(
+                "تغيير السنة",
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontSize: screenWidth * 0.035,
+                ),
+              ),
+            ),
+          ),
+        if (acadimicState is TaskSubjectAcadimic)
+          BlocBuilder<SubjectCubit, SubjectState>(
+            builder: (context, subjectState) {
+              if (subjectState is GetSubjectsLoading) {
+                return const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              } else if (subjectState is GetSubjectsFailure) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      subjectState.errorMessage,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                );
+              } else if (subjectState is GetSubjectsByYearAnsSemester) {
+                final subjectsList =
+                    subjectState.subjectsByYearSemester.data?.subjects ?? [];
+                if (subjectsList.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text("لا تتوفر مواد لهذه السنة حالياً"),
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subjectsList.length,
+                  itemBuilder: (context, index) {
+                    final subject = subjectsList[index];
+                    return SubjectCard(
+                      isbank: false,
+                      year: acadimicState.selectedYear,
+                      title: subject.name ?? "مادة بدون اسم",
+                      icon: const Icon(
+                        Icons.assignment_outlined,
+                        color: ColorsManager.orange,
+                        size: 22,
+                      ),
+                      onTap: () {
+                        final academicTaskCubit = context
+                            .read<AcademicTaskCubit>();
+                        final subjectId = subject.sId?.toString() ?? "";
+
+                        academicTaskCubit.fetchTasksByFilter(
+                          subjectId: subjectId,
+                        );
+
+                        _showAcademicTasksBottomSheet(
+                          context,
+                          academicTaskCubit,
+                          subject.name ?? "المادة",
+                          theme,
+                          screenWidth,
+                          screenHeight,
+                        );
+                      },
+                    );
+                  },
+                );
+              }
+              return const SizedBox();
+            },
+          ),
+      ],
+    );
+  }
+
+  // ==========================================
+  // نافذة عرض المهام الأكاديمية للمادة المحددة
+  // ==========================================
+  void _showAcademicTasksBottomSheet(
+    BuildContext context,
+    AcademicTaskCubit academicCubit,
+    String subjectName,
+    ThemeData theme,
+    double screenWidth,
+    double screenHeight,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      builder: (bottomSheetContext) {
+        return BlocProvider.value(
+          value: academicCubit,
+          child: Directionality(
+            textDirection: TextDirection.rtl,
+            child: Container(
+              height: screenHeight * 0.75,
+              padding: EdgeInsets.all(screenWidth * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: screenWidth * 0.15,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: ColorsManager.grey,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: screenHeight * 0.02),
+                  Text(
+                    "المهام الأكاديمية: $subjectName",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: screenWidth * 0.045,
+                    ),
+                  ),
+                  Divider(color: theme.colorScheme.primary.withOpacity(0.3)),
+                  SizedBox(height: screenHeight * 0.01),
+                  Expanded(
+                    child: BlocBuilder<AcademicTaskCubit, AcademicTaskState>(
+                      builder: (context, state) {
+                        if (state is AcademicTaskLoading) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        } else if (state is AcademicTaskError) {
+                          return Center(
+                            child: Text(
+                              state.message,
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                          );
+                        } else if (state is AcademicTasksLoaded) {
+                          if (state.tasks.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.assignment_turned_in_outlined,
+                                    size: screenWidth * 0.15,
+                                    color: ColorsManager.greyText,
+                                  ),
+                                  SizedBox(height: screenHeight * 0.02),
+                                  Text(
+                                    "لا يوجد مهام أكاديمية لهذه المادة حالياً",
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return ListView.separated(
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: state.tasks.length,
+                            separatorBuilder: (context, index) =>
+                                SizedBox(height: screenHeight * 0.015),
+                            itemBuilder: (context, index) {
+                              final task = state.tasks[index];
+                              final isClosed = task.status == 'closed';
+
+                              return Container(
+                                padding: EdgeInsets.all(screenWidth * 0.04),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(
+                                    screenWidth * 0.04,
+                                  ),
+                                  border: Border.all(
+                                    color: isClosed
+                                        ? ColorsManager.green.withOpacity(0.5)
+                                        : theme.colorScheme.primary.withOpacity(
+                                            0.2,
+                                          ),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            task.title,
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  decoration: isClosed
+                                                      ? TextDecoration
+                                                            .lineThrough
+                                                      : null,
+                                                ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: screenWidth * 0.02,
+                                            vertical: screenHeight * 0.005,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isClosed
+                                                ? ColorsManager.green
+                                                      .withOpacity(0.1)
+                                                : ColorsManager.orange
+                                                      .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            isClosed ? 'مغلقة' : 'مفتوحة',
+                                            style: TextStyle(
+                                              color: isClosed
+                                                  ? ColorsManager.green
+                                                  : ColorsManager.orange,
+                                              fontSize: screenWidth * 0.03,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (task.description.isNotEmpty) ...[
+                                      SizedBox(height: screenHeight * 0.01),
+                                      Text(
+                                        task.description,
+                                        style: theme.textTheme.bodyMedium,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

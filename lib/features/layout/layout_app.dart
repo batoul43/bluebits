@@ -1,3 +1,6 @@
+import 'package:bluebits_app/core/shares/acadimic_tasks/data/academic_tasks_repository/academic_tasks_repository.dart';
+import 'package:bluebits_app/core/shares/acadimic_tasks/data/api_service/acaddemic_tasks_api_service.dart';
+import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubit.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_lecture_api_service.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/lessonlecturecubit/lesson_lecture_cubit.dart';
@@ -77,6 +80,11 @@ class _LayoutAppState extends State<LayoutApp> {
         providers: [
           BlocProvider(create: (context) => TaskCubit()..loadTasks()),
           BlocProvider(create: (context) => AcadimmictaskCubit()..backTOYear()),
+          BlocProvider(
+            create: (context) => AcademicTaskCubit(
+              repository: AcademicTaskRepository(AcademicTaskApiService()),
+            ),
+          ),
         ],
         child: TasksScreen(),
       ),
@@ -135,12 +143,12 @@ class _LayoutAppState extends State<LayoutApp> {
           BlocProvider(
             create: (context) => AdminSurveyCubit(
               repository: AdminSurveyRepository(AdminSurveyApiService()),
-            )..fetchAllForms(),
+            ),
           ),
           BlocProvider(
             create: (context) => StudentSurveyCubit(
               repository: StudentSurveyRepository(StudentSurveyApiService()),
-            )..fetchActiveForms(),
+            ),
           ),
           BlocProvider(
             create: (context) => ScheduleSettingCubit(
@@ -174,9 +182,14 @@ class _LayoutAppState extends State<LayoutApp> {
               child: ValueListenableBuilder(
                 valueListenable: _selectedDrawerIndex,
                 builder: (context, selectedDrawerIndex, child) {
-                  return IndexedStack(
-                    index: selectedDrawerIndex,
-                    children: _pages,
+                  return Stack(
+                    children: List<Widget>.generate(
+                      _pages.length,
+                      (index) => Offstage(
+                        offstage: index != selectedDrawerIndex,
+                        child: _pages[index],
+                      ),
+                    ),
                   );
                 },
               ),

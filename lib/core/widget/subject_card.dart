@@ -67,13 +67,13 @@ class SubjectCard extends StatelessWidget {
                     fontSize: screenWidth * 0.045,
                   ),
                 ),
-                isbank == true
+                ?isbank == true
                     ? Icon(
                         Icons.help_outline_rounded,
                         color: ColorsManager.orange,
                         size: 22,
                       )
-                    : SizedBox(),
+                    : icon,
               ],
             ),
           ),

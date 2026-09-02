@@ -191,32 +191,32 @@ class SigninScreen extends StatelessWidget {
                           ),
 
                           const SizedBox(height: 40),
-                          const Center(
-                            child: Text(
-                              'أو سجل الدخول عبر :',
-                              style: TextStyle(color: ColorsManager.whiteText),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
 
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildSocialButton(
-                                'assets/images/google.svg',
-                                colorScheme,
-                              ),
-                              _buildSocialButton(
-                                'assets/images/facebook.svg',
-                                colorScheme,
-                              ),
-                              _buildSocialButton(
-                                'assets/images/apple.svg',
-                                colorScheme,
-                              ),
-                            ],
-                          ),
+                          // const Center(
+                          //   child: Text(
+                          //     'أو سجل الدخول عبر :',
+                          //     style: TextStyle(color: ColorsManager.whiteText),
+                          //   ),
+                          // ),
+                          // const SizedBox(height: 20),
 
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          //   children: [
+                          //     _buildSocialButton(
+                          //       'assets/images/google.svg',
+                          //       colorScheme,
+                          //     ),
+                          //     _buildSocialButton(
+                          //       'assets/images/facebook.svg',
+                          //       colorScheme,
+                          //     ),
+                          //     _buildSocialButton(
+                          //       'assets/images/apple.svg',
+                          //       colorScheme,
+                          //     ),
+                          //   ],
+                          // ),
                           const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
