@@ -15,7 +15,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final String baseUrl = "http://bluebits24.onrender.com/";
+  static const String _profileImageBaseUrl = "https://bluebits24.onrender.com/";
   Data? _profileData;
 
   @override
@@ -26,9 +26,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  // فحص شامل لمعرفة ما إذا كانت الحالة الحالية عبارة عن أي حالة تحميل/رفع
+  bool _isLoadingState(ProfileState state) {
+    return state is ProfileLoading ||
+        state is ProfileUpdateLoading ||
+        state.runtimeType.toString().toLowerCase().contains('loading');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
+    final mediaQuery = MediaQuery.sizeOf(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -44,7 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _showSnackBar(context, "تم تعديل الاسم بنجاح", Colors.green);
               _refreshData(context);
             } else if (state is ProfileUpdateError) {
-              // حماية التطبيق من الانهيار عند فشل السيرفر وإرجاع رسالة null
               _showSnackBar(context, state.message, theme.colorScheme.error);
             }
           },
@@ -55,9 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _profileData = state.updatedData;
             }
 
-            // عرض مؤشر التحميل في البداية فقط عندما لا تتوفر أي بيانات بعد
-            if ((state is ProfileLoading || state is ProfileUpdateLoading) &&
-                _profileData == null) {
+            final bool isLoading = _isLoadingState(state);
+
+            if (isLoading && _profileData == null) {
               return Center(
                 child: CircularProgressIndicator(
                   color: theme.colorScheme.primary,
@@ -71,24 +77,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   RefreshIndicator(
                     onRefresh: () async => await _refreshData(context),
                     child: Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: mediaQuery.width * 0.03,
+                        vertical: mediaQuery.height * 0.01,
+                      ),
                       child: Column(
                         children: [
-                          PageHeader(title: 'الملف الشخصي', subtitle: ''),
+                          const PageHeader(title: 'الملف الشخصي', subtitle: ''),
                           Expanded(
                             child: ListView(
                               padding: EdgeInsets.symmetric(
-                                horizontal: size.width * 0.05,
-                                vertical: size.height * 0.02,
+                                horizontal: mediaQuery.width * 0.04,
+                                vertical: mediaQuery.height * 0.02,
                               ),
                               children: [
-                                _buildProfileHeader(
-                                  context,
-                                  _profileData!,
-                                  size,
+                                _buildProfileAvatarHeader(
+                                  context: context,
+                                  profileData: _profileData!,
+                                  isLoading: isLoading,
+                                  mediaQuery: mediaQuery,
                                 ),
-                                SizedBox(height: size.height * 0.03),
-                                _buildInfoCard(_profileData!, theme),
+                                SizedBox(height: mediaQuery.height * 0.03),
+                                _buildInfoCard(
+                                  _profileData!,
+                                  theme,
+                                  mediaQuery,
+                                ),
                               ],
                             ),
                           ),
@@ -96,8 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  // شريط تحميل علوي ناعم أثناء معالجة الطلبات في الخلفية دون إخفاء الشاشة
-                  if (state is ProfileLoading || state is ProfileUpdateLoading)
+                  if (isLoading)
                     LinearProgressIndicator(color: theme.colorScheme.primary),
                 ],
               );
@@ -118,39 +131,82 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- دوال البناء ---
+  // --- عناصر الواجهة (UI Components) ---
 
-  Widget _buildProfileHeader(BuildContext context, Data p, Size size) {
+  Widget _buildProfileAvatarHeader({
+    required BuildContext context,
+    required Data profileData,
+    required bool isLoading,
+    required Size mediaQuery,
+  }) {
+    final theme = Theme.of(context);
+    final double avatarRadius = mediaQuery.width * 0.16;
+    final double cameraButtonPadding = mediaQuery.width * 0.025;
+    final double cameraIconSize = mediaQuery.width * 0.05;
+
+    final String? imagePath = profileData.profileImage;
+    final ImageProvider avatarImage =
+        (imagePath != null && imagePath.isNotEmpty)
+        ? NetworkImage(_profileImageUrl(imagePath))
+        : const AssetImage('assets/images/avatar.png') as ImageProvider;
+
     return Center(
       child: Stack(
+        alignment: Alignment.center,
         children: [
+          // 1. صورة الملف الشخصي
           CircleAvatar(
-            radius: size.width * 0.15,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            backgroundImage:
-                p.profileImage != null && p.profileImage!.isNotEmpty
-                ? NetworkImage(baseUrl + p.profileImage!)
-                : const AssetImage('assets/images/avatar.png') as ImageProvider,
+            radius: avatarRadius,
+            backgroundColor: theme.colorScheme.surface,
+            backgroundImage: avatarImage,
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            child: InkWell(
-              onTap: () => _pickAndUpload(context),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    width: 2,
+
+          // 2. مؤشر التحميل شفاف يظهر فوق الصورة أثناء الرفع مباشرة
+          if (isLoading)
+            Container(
+              width: avatarRadius * 2,
+              height: avatarRadius * 2,
+              decoration: const BoxDecoration(
+                color: Colors.black45,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: SizedBox(
+                  width: mediaQuery.width * 0.08,
+                  height: mediaQuery.width * 0.08,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: mediaQuery.width * 0.008,
                   ),
                 ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  color: Colors.white,
-                  size: 20,
+              ),
+            ),
+
+          // 3. زر الكاميرا (يتم تعطيل الضغط بـ AbsorbPointer عند التحميل)
+          Positioned(
+            bottom: 0,
+            right: mediaQuery.width * 0.01,
+            child: AbsorbPointer(
+              absorbing: isLoading,
+              child: InkWell(
+                onTap: () => _pickAndUpload(context),
+                borderRadius: BorderRadius.circular(100),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.all(cameraButtonPadding),
+                  decoration: BoxDecoration(
+                    color: isLoading ? Colors.grey : theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.scaffoldBackgroundColor,
+                      width: 2.5,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: cameraIconSize,
+                  ),
                 ),
               ),
             ),
@@ -160,24 +216,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoCard(Data p, ThemeData theme) {
+  Widget _buildInfoCard(Data profile, ThemeData theme, Size mediaQuery) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(mediaQuery.width * 0.04),
+      ),
       color: theme.colorScheme.surface,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(mediaQuery.width * 0.05),
         child: Column(
           children: [
             _infoTile(
               Icons.person,
               "الاسم",
-              p.name ?? "غير متوفر",
+              profile.name ?? "غير متوفر",
               theme,
-              onEdit: () => _showEditNameDialog(context, p.name),
+              mediaQuery,
+              onEdit: () => _showEditNameDialog(context, profile.name),
             ),
             Divider(color: theme.colorScheme.primary.withOpacity(0.1)),
-            _infoTile(Icons.email, "البريد", p.email ?? "غير متوفر", theme),
+            _infoTile(
+              Icons.email,
+              "البريد",
+              profile.email ?? "غير متوفر",
+              theme,
+              mediaQuery,
+            ),
           ],
         ),
       ),
@@ -188,28 +253,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     IconData icon,
     String title,
     String value,
-    ThemeData theme, {
+    ThemeData theme,
+    Size mediaQuery, {
     VoidCallback? onEdit,
   }) {
     return ListTile(
-      leading: Icon(icon, color: theme.colorScheme.primary),
+      contentPadding: EdgeInsets.symmetric(horizontal: mediaQuery.width * 0.02),
+      leading: Icon(
+        icon,
+        color: theme.colorScheme.primary,
+        size: mediaQuery.width * 0.06,
+      ),
       title: Text(
         title,
-        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.grey,
+          fontSize: mediaQuery.width * 0.035,
+        ),
       ),
-      subtitle: Text(value, style: theme.textTheme.titleMedium),
+      subtitle: Text(
+        value,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontSize: mediaQuery.width * 0.04,
+        ),
+      ),
       trailing: onEdit != null
           ? IconButton(
-              icon: Icon(Icons.edit, color: theme.colorScheme.primary),
+              icon: Icon(
+                Icons.edit,
+                color: theme.colorScheme.primary,
+                size: mediaQuery.width * 0.055,
+              ),
               onPressed: onEdit,
             )
           : null,
     );
   }
 
-  // --- دوال منطقية ---
+  String _profileImageUrl(String imagePath) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+    return '$_profileImageBaseUrl${imagePath.replaceFirst(RegExp(r'^/+'), '')}';
+  }
 
-  // تم تعديل الدالة لتقبل String مسموح أن يكون null وحماية الويدجت
+  // --- الدوال والعمليات (Logic Functions) ---
+
   void _showSnackBar(BuildContext context, String? message, Color color) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,15 +341,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
                 Navigator.pop(context);
 
-                // تحديث محلي فوري وآمن (يحميك من أخطاء الـ Immutable Model)
-                try {
+                if (_profileData != null) {
                   setState(() {
-                    if (_profileData != null) {
-                      _profileData!.name = newName;
-                    }
+                    _profileData!.name = newName;
                   });
-                } catch (e) {
-                  debugPrint("تعذر التعديل المحلي المباشر: $e");
                 }
 
                 _updateName(context, newName);
@@ -275,6 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _updateName(BuildContext context, String newName) async {
     String? token = await CachHelper.getValue('Token');
+    if (!mounted || !context.mounted) return;
     if (token == null) {
       _showSnackBar(context, 'لم يتم العثور على توكن المستخدم', Colors.red);
       return;
@@ -287,19 +372,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final XFile? image = await ImagePicker().pickImage(
         source: ImageSource.gallery,
       );
-      if (image == null) {
-        _showSnackBar(context, 'لم يتم اختيار صورة من المعرض', Colors.grey);
+      if (!mounted || !context.mounted) return;
+      if (image == null) return;
+
+      final imageFile = File(image.path);
+      if (!await imageFile.exists()) {
+        if (!mounted || !context.mounted) return;
+        _showSnackBar(context, 'تعذر الوصول إلى الصورة المختارة', Colors.red);
         return;
       }
 
       String? token = await CachHelper.getValue('Token');
+      if (!mounted || !context.mounted) return;
       if (token == null) {
         _showSnackBar(context, 'لم يتم العثور على توكن المستخدم', Colors.red);
         return;
       }
 
-      context.read<ProfileCubit>().uploadImage(File(image.path), token);
+      context.read<ProfileCubit>().uploadImage(imageFile, token);
     } catch (e) {
+      if (!mounted || !context.mounted) return;
       _showSnackBar(context, 'حدث خطأ أثناء اختيار الصورة: $e', Colors.red);
     }
   }
@@ -307,7 +399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 Future<void> _refreshData(BuildContext context) async {
   String? token = await CachHelper.getValue('Token');
-  if (token != null) {
+  if (context.mounted && token != null) {
     context.read<ProfileCubit>().loadProfile(token);
   }
 }

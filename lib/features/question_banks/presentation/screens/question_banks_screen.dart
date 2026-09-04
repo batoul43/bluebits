@@ -97,7 +97,7 @@ class QuestionBanksScreen extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildBackButton(context, theme, "تغيير السنة", () {
+          _buildBackButton(context, theme, "العودة للسنوات", () {
             context.read<BankCubit>().backTOYear();
           }),
           SizedBox(height: screenSize.height * 0.02),
@@ -762,17 +762,17 @@ class _QuizExecutionWidgetState extends State<QuizExecutionWidget> {
           },
         ),
         SizedBox(height: screenSize.height * 0.04),
-        ElevatedButton(
-          onPressed: totalAnswered == questions.length ? _submitQuiz : null,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: screenSize.height * 0.02),
-          ),
-          child: Text(
-            totalAnswered == questions.length
-                ? "إرسال وتأكيد النتيجة النهائية"
-                : "أجب عن جميع الأسئلة للإرسال ($totalAnswered/${questions.length})",
-          ),
-        ),
+        // ElevatedButton(
+        //   onPressed: totalAnswered == questions.length ? _submitQuiz : null,
+        //   style: ElevatedButton.styleFrom(
+        //     padding: EdgeInsets.symmetric(vertical: screenSize.height * 0.02),
+        //   ),
+        //   child: Text(
+        //     totalAnswered == questions.length
+        //         ? "إرسال وتأكيد النتيجة النهائية"
+        //         : "أجب عن جميع الأسئلة للإرسال ($totalAnswered/${questions.length})",
+        //   ),
+        // ),
       ],
     );
   }

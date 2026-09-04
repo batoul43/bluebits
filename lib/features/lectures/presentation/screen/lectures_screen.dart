@@ -3,7 +3,7 @@ import 'package:bluebits_app/core/shares/lessonslacture/lessonlecturecubit/lesso
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
 import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
-import 'package:bluebits_app/core/theming/colors.dart'; // الاعتماد على الألوان المخصصة للتطبيق
+import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/widget/subject_card.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/widget/page_headers.dart';
@@ -22,13 +22,17 @@ class LecturesScreen extends StatefulWidget {
 }
 
 class _LecturesScreenState extends State<LecturesScreen> {
-  // حفظ المتغيرات داخل الـ State لضمان عدم فقدانها عند تحديث الواجهات
   String _yearId = '';
   String _semesterId = '';
   String _subjectId = '';
   String _selectedType = '';
 
-  // دالة احترافية لفتح الروابط تتفادى قيود أندرويد 11+
+  // تخزين المحاضرات محلياً لمنع اختفاء القائمة عند تغيير الـ State أثناء التحميل
+  List<dynamic> _cachedLectures = [];
+
+  // تتبع المحاضرات التي يتم تحميلها حالياً عن طريق الـ ID الخاص بها
+  final Set<String> _downloadingLectureIds = {};
+
   Future<void> _openLectureUrl(String? urlString) async {
     if (urlString == null || urlString.isEmpty) {
       _showSnackBar("رابط المحاضرة غير متوفر حالياً", ColorsManager.orange);
@@ -37,11 +41,9 @@ class _LecturesScreenState extends State<LecturesScreen> {
 
     final Uri url = Uri.parse(urlString);
     try {
-      // محاولة الفتح في تطبيق خارجي أو المتصفح مباشرة
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       try {
-        // محاولة بديلة في حال فشل الوضع الخارجي
         await launchUrl(url, mode: LaunchMode.platformDefault);
       } catch (innerError) {
         _showSnackBar("عذراً، تعذر فتح الرابط", ColorsManager.redaccent);
@@ -58,7 +60,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
           style: const TextStyle(
             fontFamily: 'Cairo',
             fontWeight: FontWeight.bold,
-            color: ColorsManager.white, // النص دائمًا أبيض فوق ألوان التنبيهات
+            color: ColorsManager.white,
           ),
         ),
         backgroundColor: backgroundColor,
@@ -94,18 +96,11 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. عنوان الصفحة
                     PageHeader(
                       title: _getPageTitle(state),
                       subtitle: _getPageSubtitle(state),
                     ),
                     const SizedBox(height: 20),
-
-                    // 2. شريط البحث
-                    // const AppSearchBar(hintText: "ابحث عن محاضرة بسرعة..."),
-                    const SizedBox(height: 20),
-
-                    // 3. المحتوى الديناميكي المصمم بشكل متناسق واحترافي
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       padding: const EdgeInsets.all(18),
@@ -139,9 +134,8 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   String _getPageTitle(LecturesState state) {
-    if (state is DisplayYears || state is LecturesInitial) {
+    if (state is DisplayYears || state is LecturesInitial)
       return "مستودع المحاضرات";
-    }
     if (state is DisplaySemesters) return state.selectedYear;
     if (state is DisplaySubjects) return state.selectedSemester;
     if (state is DisplayTypes) return state.selectedSubject;
@@ -152,15 +146,13 @@ class _LecturesScreenState extends State<LecturesScreen> {
   }
 
   String _getPageSubtitle(LecturesState state) {
-    if (state is DisplayYears || state is LecturesInitial) {
+    if (state is DisplayYears || state is LecturesInitial)
       return "تصفح وحمل المحاضرات الأكاديمية المنظمة";
-    }
     if (state is DisplaySemesters) return 'اختر الفصل الدراسي';
     if (state is DisplaySubjects) return "اختر المادة المطلوبة";
     if (state is DisplayTypes) return "حدد نوع المحاضرات";
-    if (state is DisplayLecturesList) {
+    if (state is DisplayLecturesList)
       return "قائمة المحاضرات المتاحة للتحميل والقراءة";
-    }
     return "";
   }
 
@@ -170,7 +162,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
     double screenWidth,
     ThemeData theme,
   ) {
-    // === 1. عرض السنوات الأكاديمية ===
+    // 1. عرض السنوات
     if (state is DisplayYears || state is LecturesInitial) {
       return BlocBuilder<YearCubit, YearState>(
         builder: (context, yearState) {
@@ -219,9 +211,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 return YearCard(
                   title: yearItem.name ?? "بدون اسم",
                   onTap: () {
-                    setState(() {
-                      _yearId = yearItem.sId ?? "";
-                    });
+                    setState(() => _yearId = yearItem.sId ?? "");
                     context.read<LecturesCubit>().displaySemesters(
                       yearItem.name ?? "",
                     );
@@ -236,7 +226,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
       );
     }
 
-    // === زر الرجوع الموحد لجميع المراحل ===
+    // زر الرجوع
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -247,6 +237,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
               foregroundColor: theme.colorScheme.primary,
             ),
             onPressed: () {
+              _cachedLectures = [];
               if (state is DisplaySemesters) {
                 context.read<LecturesCubit>().backToYears();
               } else if (state is DisplaySubjects) {
@@ -275,7 +266,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
         ),
         Divider(height: 20, color: ColorsManager.blueGrey.withOpacity(0.2)),
 
-        // === 2. عرض الفصول الدراسية ===
+        // 2. عرض الفصول
         if (state is DisplaySemesters)
           BlocBuilder<SemesterCubit, SemesterState>(
             builder: (context, semesterState) {
@@ -299,9 +290,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                       year: state.selectedYear,
                       onTap: () {
                         if (_yearId.isEmpty) return;
-                        setState(() {
-                          _semesterId = item.id ?? "";
-                        });
+                        setState(() => _semesterId = item.id ?? "");
                         context
                             .read<SubjectCubit>()
                             .getSubjectsByYearAndSemester(
@@ -321,7 +310,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
             },
           ),
 
-        // === 3. عرض المواد الدراسية ===
+        // 3. عرض المواد
         if (state is DisplaySubjects)
           BlocBuilder<SubjectCubit, SubjectState>(
             builder: (context, subjectState) {
@@ -371,9 +360,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                       title: subjectItem.name ?? "مادة بدون اسم",
                       year: state.selectedYear,
                       onTap: () {
-                        setState(() {
-                          _subjectId = subjectItem.sId ?? "";
-                        });
+                        setState(() => _subjectId = subjectItem.sId ?? "");
                         context.read<LecturesCubit>().displayTypes(
                           state.selectedYear,
                           state.selectedSemester,
@@ -388,7 +375,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
             },
           ),
 
-        // === 4. عرض تصنيفات المحاضرة (نظري / عملي) ===
+        // 4. عرض التصنيفات (نظري / عملي)
         if (state is DisplayTypes)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
@@ -401,9 +388,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     icon: Icons.menu_book_rounded,
                     color: theme.colorScheme.primary,
                     onTap: () async {
-                      setState(() {
-                        _selectedType = 'theoretical';
-                      });
+                      setState(() => _selectedType = 'theoretical');
                       await _fetchLectures(context, state);
                     },
                   ),
@@ -416,9 +401,7 @@ class _LecturesScreenState extends State<LecturesScreen> {
                     icon: Icons.biotech_rounded,
                     color: ColorsManager.green,
                     onTap: () async {
-                      setState(() {
-                        _selectedType = 'practical';
-                      });
+                      setState(() => _selectedType = 'practical');
                       await _fetchLectures(context, state);
                     },
                   ),
@@ -427,21 +410,27 @@ class _LecturesScreenState extends State<LecturesScreen> {
             ),
           ),
 
-        // === 5. عرض قائمة المحاضرات النهائية ===
+        // 5. عرض المحاضرات
         if (state is DisplayLecturesList)
-          // تغيير BlocBuilder إلى BlocConsumer للتمكن من إظهار التنبيهات (Snackbars) بنجاح/فشل التحميل
           BlocConsumer<LessonLectureCubit, LessonLectureState>(
             listener: (context, lectureState) {
               if (lectureState is LessonLectureActionSuccess) {
-                // إظهار رسالة النجاح عند اكتمال التحميل
                 _showSnackBar(lectureState.message, ColorsManager.green);
+                // تفريغ قائمة التحميل عند النجاح لإعادة الزر لشكله الطبيعي
+                setState(() => _downloadingLectureIds.clear());
               } else if (lectureState is LessonLectureError) {
-                // إظهار رسالة الخطأ في حال فشل التحميل أو الجلب
                 _showSnackBar(lectureState.message, ColorsManager.redaccent);
+                // تفريغ قائمة التحميل عند الفشل لإعادة الزر لشكله الطبيعي
+                setState(() => _downloadingLectureIds.clear());
               }
             },
             builder: (context, lectureState) {
-              if (lectureState is LessonLectureLoading) {
+              if (lectureState is LessonLecturesLoaded) {
+                _cachedLectures = lectureState.lessonLectures;
+              }
+
+              if (lectureState is LessonLectureLoading &&
+                  _cachedLectures.isEmpty) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(30),
@@ -452,169 +441,186 @@ class _LecturesScreenState extends State<LecturesScreen> {
                 );
               }
 
-              if (lectureState is LessonLecturesLoaded) {
-                final lectures = lectureState.lessonLectures;
-                if (lectures.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(30),
-                      child: Text(
-                        "لا توجد محاضرات متوفرة في هذا القسم حالياً",
-                        style: TextStyle(color: ColorsManager.greyText),
+              if (_cachedLectures.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Text(
+                      "لا توجد محاضرات متوفرة في هذا القسم حالياً",
+                      style: TextStyle(color: ColorsManager.greyText),
+                    ),
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _cachedLectures.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final lecture = _cachedLectures[index];
+                  final String lectureId = lecture.id ?? "";
+                  final bool isDownloading = _downloadingLectureIds.contains(
+                    lectureId,
+                  );
+
+                  final String fileType = (lecture.fileType ?? 'pdf')
+                      .toUpperCase();
+                  final String fileSizeFormatted = lecture.fileSize != null
+                      ? '${(lecture.fileSize! / (1024 * 1024)).toStringAsFixed(2)} MB'
+                      : 'غير محدد';
+
+                  return Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: ColorsManager.blueGrey.withOpacity(0.2),
                       ),
                     ),
-                  );
-                }
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: lectures.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final lecture = lectures[index];
-                    final String fileType = (lecture.fileType ?? 'pdf')
-                        .toUpperCase();
-
-                    // تحويل حجم الملف ليظهر بالميغابايت بشكل صحيح (MB)
-                    final String fileSizeFormatted = lecture.fileSize != null
-                        ? '${(lecture.fileSize! / (1024 * 1024)).toStringAsFixed(2)} MB'
-                        : 'غير محدد';
-
-                    return Card(
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: ColorsManager.blueGrey.withOpacity(0.2),
+                    color: theme.scaffoldBackgroundColor,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: ColorsManager.redaccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.picture_as_pdf_rounded,
+                          color: ColorsManager.redaccent,
+                          size: 28,
                         ),
                       ),
-                      color: theme.scaffoldBackgroundColor,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
+                      title: Text(
+                        lecture.title ?? "محاضرة بدون عنوان",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: theme.colorScheme.onSurface,
                         ),
-                        leading: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: ColorsManager.redaccent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.picture_as_pdf_rounded,
-                            color: ColorsManager.redaccent,
-                            size: 28,
-                          ),
-                        ),
-                        title: Text(
-                          lecture.title ?? "محاضرة بدون عنوان",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (lecture.description != null &&
-                                  lecture.description!.isNotEmpty)
-                                Text(
-                                  lecture.description!,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: ColorsManager.greyText,
-                                    fontSize: 13,
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (lecture.description != null &&
+                                lecture.description!.isNotEmpty)
+                              Text(
+                                lecture.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: ColorsManager.greyText,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    fileType,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              const SizedBox(height: 8),
-
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: theme.colorScheme.primary
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      fileType,
-                                      style: TextStyle(
-                                        color: theme.colorScheme.primary,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.data_usage_rounded,
-                                    size: 14,
+                                const Icon(
+                                  Icons.data_usage_rounded,
+                                  size: 14,
+                                  color: ColorsManager.greyText,
+                                ),
+                                Text(
+                                  fileSizeFormatted,
+                                  style: const TextStyle(
+                                    fontSize: 12,
                                     color: ColorsManager.greyText,
                                   ),
-                                  Text(
-                                    fileSizeFormatted,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: ColorsManager.greyText,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // عرض مؤشر تحميل أو زر التحميل بناءً على حالة الـ isDownloading
+                          isDownloading
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.0,
+                                  ),
+                                  child: SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: ColorsManager.green,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        // تعديل الـ trailing ليحتوي على زر التحميل وزر السهم
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // زر التحميل المربوط بالـ Cubit
-                            IconButton(
-                              onPressed: () {
-                                if (lecture.id != null) {
-                                  context
-                                      .read<LessonLectureCubit>()
-                                      .downloadLectureToDevice(
-                                        lecture.id!,
-                                        lectures,
+                                )
+                              : IconButton(
+                                  onPressed: () {
+                                    if (lectureId.isNotEmpty) {
+                                      // تفعيل حالة التحميل لهذه المحاضرة تحديداً
+                                      setState(() {
+                                        _downloadingLectureIds.add(lectureId);
+                                      });
+
+                                      context
+                                          .read<LessonLectureCubit>()
+                                          .downloadLectureToDevice(
+                                            lectureId,
+                                            _cachedLectures.cast(),
+                                          );
+                                    } else {
+                                      _showSnackBar(
+                                        "لا يمكن تحميل المحاضرة لعدم توفر المعرف",
+                                        ColorsManager.redaccent,
                                       );
-                                } else {
-                                  _showSnackBar(
-                                    "لا يمكن تحميل المحاضرة لعدم توفر المعرف",
-                                    ColorsManager.redaccent,
-                                  );
-                                }
-                              },
-                              icon: const Icon(Icons.download_rounded),
-                              color: ColorsManager.green,
-                              tooltip: 'تحميل المحاضرة',
-                            ),
-                            // أيقونة السهم الجمالية
-                            Icon(
+                                    }
+                                  },
+                                  icon: const Icon(Icons.download_rounded),
+                                  color: ColorsManager.green,
+                                  tooltip: 'تحميل المحاضرة',
+                                ),
+                          IconButton(
+                            onPressed: () => _openLectureUrl(lecture.fileUrl),
+                            icon: Icon(
                               Icons.arrow_circle_left_rounded,
                               color: theme.colorScheme.primary,
                               size: 30,
                             ),
-                          ],
-                        ),
-                        // الضغط على البطاقة لفتح الرابط
-                        onTap: () => _openLectureUrl(lecture.fileUrl),
+                            tooltip: 'عرض المحاضرة',
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                );
-              }
-              // إرجاع واجهة فارغة في حالة Initial أو إذا لم يتم معالجة حالة معينة
-              return const SizedBox.shrink();
+                    ),
+                  );
+                },
+              );
             },
           ),
       ],
@@ -624,6 +630,9 @@ class _LecturesScreenState extends State<LecturesScreen> {
   Future<void> _fetchLectures(BuildContext context, DisplayTypes state) async {
     final token = await CachHelper.getValue('Token');
     if (!context.mounted) return;
+
+    _cachedLectures = [];
+    _downloadingLectureIds.clear(); // تصفير التحميلات السابقة عند الانتقال
 
     context.read<LessonLectureCubit>().fetchLecturesByYearSemesterSubjectType(
       token,

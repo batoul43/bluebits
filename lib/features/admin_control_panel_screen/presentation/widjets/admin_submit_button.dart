@@ -5,12 +5,14 @@ class AdminSubmitButton extends StatelessWidget {
   final String title;
   final VoidCallback onPressed;
   final bool isDestructive;
+  final double? fontSize;
 
   const AdminSubmitButton({
     super.key,
     required this.title,
     required this.onPressed,
     this.isDestructive = false,
+    this.fontSize,
   });
 
   @override
@@ -36,7 +38,10 @@ class AdminSubmitButton extends StatelessWidget {
         ),
         child: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: fontSize ?? 16,
+          ),
         ),
       ),
     );

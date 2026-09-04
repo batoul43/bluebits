@@ -248,50 +248,55 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       itemBuilder: (context, index) {
                         final item = conversations[index];
                         final isSelected = _currentConversationId == item.id;
-                        return ListTile(
-                          selected: isSelected,
-                          selectedTileColor:
-                              (isDark ? ColorsManager.cyan : ColorsManager.blue)
-                                  .withOpacity(0.1),
-                          leading: Icon(
-                            Icons.chat_bubble_outline,
-                            color: isDark
-                                ? ColorsManager.cyan
-                                : ColorsManager.blue,
-                            size: screenWidth * 0.05,
-                          ),
-                          title: Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.035,
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            selected: isSelected,
+                            selectedTileColor:
+                                (isDark
+                                        ? ColorsManager.cyan
+                                        : ColorsManager.blue)
+                                    .withOpacity(0.1),
+                            leading: Icon(
+                              Icons.chat_bubble_outline,
                               color: isDark
-                                  ? ColorsManager.whiteText
-                                  : ColorsManager.blackText,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(
-                              Icons.delete_outline,
-                              color: ColorsManager.redaccent,
+                                  ? ColorsManager.cyan
+                                  : ColorsManager.blue,
                               size: screenWidth * 0.05,
                             ),
-                            onPressed: () =>
-                                _confirmDeleteConversation(item.id),
+                            title: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.035,
+                                color: isDark
+                                    ? ColorsManager.whiteText
+                                    : ColorsManager.blackText,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                color: ColorsManager.redaccent,
+                                size: screenWidth * 0.05,
+                              ),
+                              onPressed: () =>
+                                  _confirmDeleteConversation(item.id),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context); // إغلاق الـ Drawer
+                              setState(() {
+                                _currentConversationId = item.id;
+                              });
+                              context.read<AiCubit>().fetchConversationById(
+                                item.id,
+                              );
+                            },
                           ),
-                          onTap: () {
-                            Navigator.pop(context); // إغلاق الـ Drawer
-                            setState(() {
-                              _currentConversationId = item.id;
-                            });
-                            context.read<AiCubit>().fetchConversationById(
-                              item.id,
-                            );
-                          },
                         );
                       },
                     );

@@ -493,7 +493,7 @@ class TasksScreen extends StatelessWidget {
             child: TextButton(
               onPressed: () => context.read<AcadimmictaskCubit>().backTOYear(),
               child: Text(
-                "تغيير السنة",
+                "العودة للسنوات",
                 style: TextStyle(
                   color: theme.colorScheme.primary,
                   fontSize: screenWidth * 0.035,

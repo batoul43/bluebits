@@ -41,7 +41,7 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('الاستبيانات والتقييمات'),
+        title: const Text('الاستبيانات '),
         centerTitle: true,
         elevation: 0,
       ),
@@ -52,8 +52,6 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
             _showSnackBar(context, state.message, ColorsManager.green);
           } else if (state is StudentSurveyError) {
             _closeLoadingDialog(context);
-            // التعديل هنا: منع ظهور الشريط الأحمر عند فتح الصفحة لأول مرة
-            // سيظهر فقط إذا كانت الصفحة محملة مسبقاً وحدث خطأ أثناء إجراء آخر كالإرسال
             if (_cachedSurveys.isNotEmpty) {
               _showSnackBar(context, state.message, theme.colorScheme.error);
             }
@@ -155,10 +153,10 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
       return Center(
         child: CircularProgressIndicator(color: theme.colorScheme.primary),
       );
-    } else if (state is StudentSurveyError && _cachedSurveys.isEmpty) {
-      return _buildErrorState(context, state.message, theme);
-    } else if (_cachedSurveys.isEmpty) {
-      return _buildEmptyState(context, theme);
+    }
+    // دمج حالتي الخطأ والبيانات الفارغة لعرض الرسالة والصورة المتحركة المخصصة
+    else if (_cachedSurveys.isEmpty) {
+      return _buildAnimatedNoSurveyState(theme, size);
     }
 
     return ListView.separated(
@@ -168,6 +166,36 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
       itemBuilder: (context, index) {
         return _buildSurveyCard(context, _cachedSurveys[index], theme, size);
       },
+    );
+  }
+
+  // الواجهة الجديدة والموحدة عند عدم توفر استبيانات
+  Widget _buildAnimatedNoSurveyState(ThemeData theme, Size size) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // يمكنك استبدال هذه الويدجت بـ Lottie.asset('assets/animation.json')
+              // أو Image.asset('assets/empty.gif') إذا كان لديك ملفات خارجية.
+              _AnimatedEmptyIcon(theme: theme),
+              const SizedBox(height: 24),
+              Text(
+                'لايوجد استبيان مفتوح لسنتك الدراسية حاليا',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -403,7 +431,6 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
   ) {
     List<dynamic> rawSubjects = [];
 
-    // تم إصلاح المنطق ليعتمد على الردود التي تكون بصيغة Maps
     if (statsModel.data?.subjects != null &&
         statsModel.data!.subjects!.isNotEmpty) {
       rawSubjects = statsModel.data!.subjects!;
@@ -427,7 +454,6 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
     Map<String, Map<String, dynamic>> evaluations = {};
     for (var sub in rawSubjects) {
       if (sub is Map) {
-        // 1. استخراج معرّف المادة بشكل آمن
         String subjectId = '';
         if (sub['subjectId'] is Map) {
           subjectId =
@@ -443,7 +469,6 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
               '';
         }
 
-        // 2. استخراج اسم المادة بشكل آمن
         String subjectName = 'مادة غير معروفة';
         if (sub['subjectId'] is Map) {
           subjectName =
@@ -474,7 +499,6 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
       }
     }
 
-    // التحقق مجدداً بعد الفلترة
     if (evaluations.isEmpty) {
       _showSnackBar(
         parentContext,
@@ -564,19 +588,22 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
                                   ),
                                   const SizedBox(height: 12),
 
-                                  SwitchListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    title: Text(
-                                      'هل أنت حامل للمادة؟',
-                                      style: theme.textTheme.bodyMedium,
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: SwitchListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      title: Text(
+                                        'هل أنت حامل للمادة؟',
+                                        style: theme.textTheme.bodyMedium,
+                                      ),
+                                      value: currentEval['isCarrying'],
+                                      activeColor: theme.colorScheme.primary,
+                                      onChanged: (bool value) {
+                                        setState(() {
+                                          currentEval['isCarrying'] = value;
+                                        });
+                                      },
                                     ),
-                                    value: currentEval['isCarrying'],
-                                    activeColor: theme.colorScheme.primary,
-                                    onChanged: (bool value) {
-                                      setState(() {
-                                        currentEval['isCarrying'] = value;
-                                      });
-                                    },
                                   ),
 
                                   Text(
@@ -1250,49 +1277,64 @@ class _StudentSurveysScreenState extends State<StudentSurveysScreen> {
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(BuildContext context, ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.inbox_outlined,
-            size: 80,
-            color: ColorsManager.greyText.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لا يوجد استبيانات متاحة حالياً',
-            style: theme.textTheme.titleMedium,
-          ),
-        ],
-      ),
-    );
+// ويدجت مخصصة لصنع حركة عائمة (Floating Animation) نقية وبسيطة
+// باستخدام Flutter بدون الحاجة لمكتبات خارجية.
+class _AnimatedEmptyIcon extends StatefulWidget {
+  final ThemeData theme;
+
+  const _AnimatedEmptyIcon({required this.theme});
+
+  @override
+  State<_AnimatedEmptyIcon> createState() => _AnimatedEmptyIconState();
+}
+
+class _AnimatedEmptyIconState extends State<_AnimatedEmptyIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(
+      begin: -10.0,
+      end: 10.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
-  Widget _buildErrorState(BuildContext context, String error, ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 60, color: theme.colorScheme.error),
-            const SizedBox(height: 16),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () =>
-                  context.read<StudentSurveyCubit>().fetchActiveForms(),
-              icon: const Icon(Icons.refresh),
-              label: const Text('إعادة المحاولة'),
-            ),
-          ],
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _animation.value),
+          child: child,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(30),
+        decoration: BoxDecoration(
+          color: widget.theme.colorScheme.primary.withOpacity(0.05),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.sentiment_dissatisfied_rounded,
+          size: 80,
+          color: widget.theme.colorScheme.primary.withOpacity(0.6),
         ),
       ),
     );

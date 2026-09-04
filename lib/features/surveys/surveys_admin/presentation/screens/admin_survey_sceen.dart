@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:bluebits_app/core/theming/colors.dart';
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
@@ -14,19 +15,35 @@ class AdminSurveyScreen extends StatefulWidget {
 }
 
 class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
+  List<AdminFormModel> _cachedForms = [];
+
+  final ScrollController _verticalScrollController = ScrollController();
+  final ScrollController _horizontalScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AdminSurveyCubit>().fetchAllForms();
-      context.read<YearCubit>().fetchAllYears();
-      context.read<SemesterCubit>().fetchAllSemesters();
+      _fetchInitialData();
     });
   }
 
   @override
+  void dispose() {
+    _verticalScrollController.dispose();
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
+  void _fetchInitialData() {
+    context.read<AdminSurveyCubit>().fetchAllForms();
+    context.read<YearCubit>().fetchAllYears();
+    context.read<SemesterCubit>().fetchAllSemesters();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final theme = Theme.of(context);
     final isTablet = size.width > 600;
 
@@ -36,17 +53,21 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
         listener: (context, state) {
           if (state is AdminSurveyActionSuccess) {
             _showSnackBar(context, state.message, ColorsManager.green);
+            context.read<AdminSurveyCubit>().fetchAllForms();
           } else if (state is AdminSurveyError) {
             _showSnackBar(context, state.message, ColorsManager.redaccent);
           } else if (state is AdminSurveyResultsLoaded) {
             _showResultsDialog(context, state.results);
-            // تمت إزالة استدعاء إعادة جلب القائمة من هنا لتحسين الـ UX وعدم إخفاء الشاشة الخلفية
           }
         },
         builder: (context, state) {
+          if (state is AdminSurveysLoaded) {
+            _cachedForms = state.forms;
+          }
+
           return Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: size.width * 0.04,
+              horizontal: size.width * (isTablet ? 0.08 : 0.04),
               vertical: 12.0,
             ),
             child: Column(
@@ -70,15 +91,25 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message, style: const TextStyle(color: Colors.white)),
+          content: Text(
+            message,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           backgroundColor: color,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
       );
   }
 
   void _showResultsDialog(BuildContext context, dynamic results) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final theme = Theme.of(context);
 
     showDialog(
@@ -99,132 +130,365 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
           ],
         ),
         content: SizedBox(
-          width: size.width > 600 ? 500 : size.width * 0.9,
-          height: size.height * 0.5,
-          child: _buildResultsContent(ctx, results),
+          width: size.width > 600 ? 1000 : size.width * 0.95,
+          height: size.height * 0.7,
+          child: _buildResultsTable(ctx, results),
         ),
         actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorsManager.blue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+          TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              // استعادة الحالة السابقة للكيوبت لتجنب بقائه في حالة ResultsLoaded
               context.read<AdminSurveyCubit>().fetchAllForms();
             },
-            child: const Text('إغلاق', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'إغلاق',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResultsContent(BuildContext context, dynamic results) {
+  /// قاموس لترجمة أسماء المفاتيح لتبدو احترافية
+  String _translateKey(String key) {
+    final Map<String, String> translations = {
+      'coursename': 'اسم المادة',
+      'course': 'المادة',
+      'subject': 'المادة',
+      'studentname': 'اسم الطالب',
+      'student': 'الطالب',
+      'name': 'الاسم',
+      'email': 'البريد الإلكتروني',
+      'semester': 'الفصل الدراسي',
+      'year': 'السنة الدراسية',
+      'preference': 'الأفضلية',
+      'preferences': 'الأفضليات',
+      'priority': 'الأولوية',
+      'rating': 'التقييم',
+      'votes': 'عدد الأصوات',
+      'count': 'العدد',
+      'status': 'الحالة',
+      'date': 'التاريخ',
+      'createdat': 'تاريخ التقديم',
+      'updatedat': 'تاريخ التحديث',
+      'answers': 'الإجابات',
+      'answer': 'الإجابة',
+      'question': 'السؤال',
+    };
+
+    return translations[key.toLowerCase()] ?? key;
+  }
+
+  /// دالة ذكية لاستخراج "الاسم" فقط من الكائنات المعقدة (تمنع ظهور الـ ID والتفاصيل الزائدة في الأعمدة الرئيسية)
+  String _extractEntityName(dynamic val) {
+    if (val == null) return '-';
+
+    if (val is String) {
+      try {
+        final decoded = jsonDecode(val);
+        return _extractEntityName(decoded);
+      } catch (_) {
+        return val;
+      }
+    }
+
+    if (val is Map) {
+      final nameKeys = [
+        'name',
+        'title',
+        'arname',
+        'enname',
+        'coursename',
+        'studentname',
+        'username',
+      ];
+      for (var k in nameKeys) {
+        for (var actualKey in val.keys) {
+          if (actualKey.toString().toLowerCase() == k) {
+            return val[actualKey].toString();
+          }
+        }
+      }
+      return _formatValue(val);
+    }
+
+    return val.toString();
+  }
+
+  /// دالة لمعالجة وتنسيق البيانات المتداخلة والقوائم
+  String _formatValue(dynamic value) {
+    if (value == null) return '-';
+
+    if (value is String) {
+      final trimmed = value.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          final decoded = jsonDecode(trimmed);
+          return _formatValue(decoded);
+        } catch (_) {}
+      }
+    }
+
+    // تنسيق القوائم كنقاط (Bullet points) لتبدو احترافية ومرتبة عمودياً
+    if (value is List) {
+      if (value.isEmpty) return '-';
+      return value.map((e) => '• ${_formatValue(e)}').join('\n');
+    }
+
+    if (value is Map) {
+      if (value.isEmpty) return '-';
+
+      final filteredEntries = value.entries.where((e) {
+        final k = e.key.toString().toLowerCase();
+        return !k.contains('id') && k != '_id' && k != '__v';
+      });
+
+      if (filteredEntries.isEmpty) return '-';
+
+      return filteredEntries
+          .map((e) {
+            final k = _translateKey(e.key.toString());
+            final v = _formatValue(e.value);
+            return '$k: $v';
+          })
+          .join(' | ');
+    }
+
+    final String strValue = value.toString();
+    final dateRegex = RegExp(r'^\d{4}-\d{2}-\d{2}T');
+    if (dateRegex.hasMatch(strValue)) {
+      final DateTime? parsedDate = DateTime.tryParse(strValue);
+      if (parsedDate != null) {
+        return '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
+      }
+    }
+
+    return strValue;
+  }
+
+  /// أداة لتسهيل بناء نصوص الخلايا مع مسافات مريحة للعين
+  Widget _buildCellText(String text, {bool isBold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14.0),
+      child: Text(
+        text,
+        style: TextStyle(
+          height: 1.6,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultsTable(BuildContext context, dynamic results) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     if (results == null) return _emptyResultsWidget(theme);
 
-    if (results is String) {
-      return Center(
-        child: Text(
-          results,
-          style: theme.textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-      );
-    }
+    List<DataColumn> columns = [];
+    List<DataRow> rows = [];
 
-    // دعم استخراج النتائج من المودل المخصص الخاص بالنتائج
     if (results is FormResultsModel) {
       final responsesList = results.responses ?? [];
-
       if (responsesList.isEmpty) return _emptyResultsWidget(theme);
 
-      return ListView.separated(
-        physics: const BouncingScrollPhysics(),
-        itemCount: responsesList.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final item = responsesList[index];
-          String displayText = item.toString();
+      if (responsesList.first is Map) {
+        // 1. تحديد الأعمدة الثابتة المطلوبة باحترافية
+        final List<String> standardHeaders = [
+          'اسم الطالب',
+          'السنة الدراسية',
+          'الفصل الدراسي',
+          'المادة / الرغبات',
+          'تفاصيل إضافية',
+        ];
 
-          // ترتيب البيانات إذا كانت بصيغة Map لتظهر بشكل أكثر احترافية
-          if (item is Map) {
-            displayText = item.entries
-                .map((e) => '• ${e.key}: ${e.value}')
-                .join('\n');
+        columns = standardHeaders
+            .map(
+              (header) => DataColumn(
+                label: Text(
+                  header,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            )
+            .toList();
+
+        rows = responsesList.map((item) {
+          final mapItem = item as Map;
+
+          // دالة مساعدة للبحث عن القيم بناءً على كلمات مفتاحية (لتوافق مرن مع الـ API)
+          dynamic findByKeywords(List<String> keywords) {
+            for (var key in mapItem.keys) {
+              final lowerKey = key.toString().toLowerCase();
+              if (keywords.any((kw) => lowerKey.contains(kw))) {
+                return mapItem[key];
+              }
+            }
+            return null;
           }
 
-          return Container(
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? ColorsManager.deepNavy
-                  : ColorsManager.lightBlue.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ColorsManager.blue.withOpacity(0.1)),
-            ),
-            child: Text(displayText, style: theme.textTheme.bodyMedium),
-          );
-        },
-      );
-    }
+          // 2. استخراج الحقول الأساسية المطلوبة لكل سطر
+          final student = findByKeywords([
+            'student',
+            'user',
+            'name',
+            'account',
+          ]);
+          final year = findByKeywords(['year', 'academic']);
+          final semester = findByKeywords(['semester', 'term']);
+          final subject = findByKeywords([
+            'course',
+            'subject',
+            'preference',
+            'answer',
+            'choice',
+          ]);
 
-    if (results is List) {
-      if (results.isEmpty) return _emptyResultsWidget(theme);
-      return ListView.separated(
-        physics: const BouncingScrollPhysics(),
-        itemCount: results.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
-        itemBuilder: (context, index) {
-          final item = results[index];
-          return Container(
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? ColorsManager.deepNavy
-                  : ColorsManager.lightBlue.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ColorsManager.blue.withOpacity(0.1)),
-            ),
-            child: Text(item.toString(), style: theme.textTheme.bodyMedium),
-          );
-        },
-      );
-    }
+          // 3. تجميع أي بيانات أخرى متبقية في عمود "التفاصيل الإضافية"
+          final usedKeys = mapItem.keys.where((k) {
+            final lowerK = k.toString().toLowerCase();
+            return [
+              'student',
+              'user',
+              'name',
+              'account',
+              'year',
+              'academic',
+              'semester',
+              'term',
+              'course',
+              'subject',
+              'preference',
+              'answer',
+              'choice',
+            ].any((kw) => lowerK.contains(kw));
+          }).toList();
 
-    if (results is Map) {
-      if (results.isEmpty) return _emptyResultsWidget(theme);
-      return ListView.separated(
-        physics: const BouncingScrollPhysics(),
-        itemCount: results.entries.length,
-        separatorBuilder: (_, __) => const Divider(),
-        itemBuilder: (context, index) {
-          final entry = results.entries.elementAt(index);
-          return ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              entry.key.toString(),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.bold,
+          final otherDetails = Map.fromEntries(
+            mapItem.entries.where((e) {
+              final k = e.key.toString().toLowerCase();
+              return !usedKeys.contains(e.key) &&
+                  !k.contains('id') &&
+                  k != '__v';
+            }),
+          );
+
+          return DataRow(
+            cells: [
+              DataCell(
+                _buildCellText(_extractEntityName(student), isBold: true),
               ),
-            ),
-            subtitle: Text(
-              entry.value.toString(),
-              style: theme.textTheme.bodyMedium,
-            ),
+              DataCell(_buildCellText(_extractEntityName(year))),
+              DataCell(_buildCellText(_extractEntityName(semester))),
+              DataCell(
+                _buildCellText(_formatValue(subject)),
+              ), // المادة قد تكون قائمة لذلك نستخدم formatValue
+              DataCell(
+                _buildCellText(
+                  otherDetails.isEmpty ? '-' : _formatValue(otherDetails),
+                ),
+              ),
+            ],
           );
-        },
+        }).toList();
+      } else {
+        // معالجة إذا كانت الردود نصوص بسيطة وليست كائنات
+        columns = const [
+          DataColumn(
+            label: Text(
+              'الردود',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ];
+        rows = responsesList
+            .map(
+              (item) => DataRow(
+                cells: [DataCell(_buildCellText(_formatValue(item)))],
+              ),
+            )
+            .toList();
+      }
+    } else if (results is Map) {
+      final filteredResults = Map.fromEntries(
+        results.entries.where(
+          (e) => !e.key.toString().toLowerCase().contains('id'),
+        ),
       );
+
+      if (filteredResults.isEmpty) return _emptyResultsWidget(theme);
+
+      columns = const [
+        DataColumn(
+          label: Text('العنصر', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        DataColumn(
+          label: Text('النتيجة', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ];
+      rows = filteredResults.entries
+          .map(
+            (entry) => DataRow(
+              cells: [
+                DataCell(
+                  _buildCellText(
+                    _translateKey(entry.key.toString()),
+                    isBold: true,
+                  ),
+                ),
+                DataCell(_buildCellText(_formatValue(entry.value))),
+              ],
+            ),
+          )
+          .toList();
+    } else {
+      return Center(child: Text(_formatValue(results)));
     }
 
-    return SingleChildScrollView(
-      child: Text(results.toString(), style: theme.textTheme.bodyMedium),
+    return Scrollbar(
+      controller: _verticalScrollController,
+      thumbVisibility: true,
+      trackVisibility: true,
+      interactive: true,
+      child: SingleChildScrollView(
+        controller: _verticalScrollController,
+        scrollDirection: Axis.vertical,
+        physics: const BouncingScrollPhysics(),
+        child: Scrollbar(
+          controller: _horizontalScrollController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          interactive: true,
+          notificationPredicate: (notif) => notif.depth == 0,
+          child: SingleChildScrollView(
+            controller: _horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(
+                theme.colorScheme.primary.withOpacity(0.1),
+              ),
+              dataRowMinHeight: 65,
+              dataRowMaxHeight: double.infinity,
+              columnSpacing: 40,
+              border: TableBorder.all(
+                color: theme.dividerColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12), // زوايا أنعم للجدول
+              ),
+              columns: columns,
+              rows: rows,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -240,7 +504,7 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'لا توجد نتائج مسجلة حتى الآن',
+            'لا توجد نتائج لعرضها',
             style: theme.textTheme.titleMedium?.copyWith(
               color: ColorsManager.greyText,
             ),
@@ -255,11 +519,11 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
     AdminSurveyState state,
     bool isTablet,
   ) {
-    if (state is AdminSurveyLoading) {
+    if (state is AdminSurveyLoading && _cachedForms.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state is AdminSurveyError) {
+    if (state is AdminSurveyError && _cachedForms.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -281,49 +545,45 @@ class _AdminSurveyScreenState extends State<AdminSurveyScreen> {
       );
     }
 
-    if (state is AdminSurveysLoaded) {
-      final forms = state.forms;
-
-      if (forms.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.poll_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'لا توجد استبيانات متاحة حالياً',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
-          ),
-        );
-      }
-
-      return isTablet
-          ? GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.3,
-              ),
-              itemCount: forms.length,
-              itemBuilder: (context, index) => _SurveyCard(form: forms[index]),
-            )
-          : ListView.separated(
-              itemCount: forms.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _SurveyCard(form: forms[index]),
-            );
+    if (_cachedForms.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.poll_outlined,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'لا توجد استبيانات متاحة حالياً',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
+      );
     }
 
-    // للمحافظة على الواجهة في حالات State الأخرى (مثل جلب النتائج)
-    return const SizedBox();
+    return isTablet
+        ? GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.3,
+            ),
+            itemCount: _cachedForms.length,
+            itemBuilder: (context, index) =>
+                _SurveyCard(form: _cachedForms[index]),
+          )
+        : ListView.separated(
+            physics: const BouncingScrollPhysics(),
+            itemCount: _cachedForms.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) =>
+                _SurveyCard(form: _cachedForms[index]),
+          );
   }
 }
 
@@ -363,7 +623,7 @@ class _AdminSurveyHeaderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'استبيانات تقييم المواد',
+                  'استبيانات أفضلية المواد',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -466,6 +726,7 @@ class _SurveyCard extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -661,26 +922,14 @@ class _CreateSurveyDialogState extends State<_CreateSurveyDialog> {
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'هذا الحقل مطلوب';
-                  }
-
-                  // التحقق من نمط الكتابة (أربعة أرقام - أربعة أرقام)
+                  if (v == null || v.trim().isEmpty) return 'هذا الحقل مطلوب';
                   final regex = RegExp(r'^(\d{4})-(\d{4})$');
                   final match = regex.firstMatch(v.trim());
-
-                  if (match == null) {
-                    return 'الصيغة غير صحيحة، مثال: 2026-2027';
-                  }
-
+                  if (match == null) return 'الصيغة غير صحيحة، مثال: 2026-2027';
                   int startYear = int.parse(match.group(1)!);
                   int endYear = int.parse(match.group(2)!);
-
-                  // التحقق من أن السنة الثانية تاليـة للسنة الأولى
-                  if (endYear != startYear + 1) {
-                    return 'يجب أن يكون العام الثاني تالياً للعام الأول (مثال: 2026-2027)';
-                  }
-
+                  if (endYear != startYear + 1)
+                    return 'يجب أن يكون العام الثاني تالياً للعام الأول';
                   return null;
                 },
               ),
