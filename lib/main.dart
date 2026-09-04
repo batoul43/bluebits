@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:bluebits_app/core/constant/constant.dart';
 import 'package:bluebits_app/core/helpers/cachhelper.dart';
+import 'package:bluebits_app/core/shares/acadimic_tasks/data/academic_tasks_repository/academic_tasks_repository.dart';
+import 'package:bluebits_app/core/shares/acadimic_tasks/data/api_service/acaddemic_tasks_api_service.dart';
+import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubit.dart';
 import 'package:bluebits_app/core/theming/app_theme.dart';
 import 'package:bluebits_app/core/theming/colors.dart'; // تم استدعاء ملف الألوان
 import 'package:bluebits_app/features/ai/data/api_Service/ai_api_service.dart';
@@ -32,6 +35,11 @@ Future<void> main() async {
   runApp(
     MultiBlocProvider(
       providers: [
+        BlocProvider(
+          create: (context) => AcademicTaskCubit(
+            repository: AcademicTaskRepository(AcademicTaskApiService()),
+          ),
+        ),
         BlocProvider(
           create: (context) =>
               AuthCubit(authrepo: AuthRepo(authApi: AuthApi()))

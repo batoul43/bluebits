@@ -1,4 +1,5 @@
 import 'package:bluebits_app/core/theming/colors.dart';
+import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
 import 'package:flutter/material.dart';
 
 class WellcomWidget extends StatelessWidget {
@@ -40,7 +41,12 @@ class WellcomWidget extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LecturesScreen()),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: ColorsManager.white.withOpacity(0.95),
               foregroundColor: ColorsManager.blue,

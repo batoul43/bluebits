@@ -1,3 +1,4 @@
+import 'package:bluebits_app/core/constant/constant.dart';
 import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubit.dart';
 import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
 import 'package:bluebits_app/core/shares/years/presentation/logic/year_cubit.dart';
@@ -121,6 +122,13 @@ class TasksScreen extends StatelessWidget {
           );
         }
         if (state is TasksLoaded) {
+          // تحديث عدد المهام المنجزة تلقائياً داخل الـ ValueNotifier
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            completedTasksNotifier.value = state.filteredTasks
+                .where((task) => task.isCompleted)
+                .length;
+          });
+
           return Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,

@@ -1,6 +1,9 @@
 import 'package:bluebits_app/core/shares/acadimic_tasks/data/academic_tasks_repository/academic_tasks_repository.dart';
 import 'package:bluebits_app/core/shares/acadimic_tasks/data/api_service/acaddemic_tasks_api_service.dart';
 import 'package:bluebits_app/core/shares/acadimic_tasks/logic/academic_task_cubit.dart';
+import 'package:bluebits_app/core/shares/announcement/data/api_service/announcement_api_service.dart';
+import 'package:bluebits_app/core/shares/announcement/data/repository/announcement_repository.dart';
+import 'package:bluebits_app/core/shares/announcement/logic/announcement_cubit.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/api_service/lesson_lecture_api_service.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/data/repositry/lesson_lecture_repository.dart';
 import 'package:bluebits_app/core/shares/lessonslacture/lessonlecturecubit/lesson_lecture_cubit.dart';
@@ -25,7 +28,6 @@ import 'package:bluebits_app/features/home/presentation/home_screen.dart';
 import 'package:bluebits_app/features/lectures/presentation/logic/cubit/lectures_cubit.dart';
 import 'package:bluebits_app/features/lectures/presentation/screen/lectures_screen.dart';
 import 'package:bluebits_app/features/profile/data/api_service/profile_api.dart';
-import 'package:bluebits_app/features/profile/data/models/profile_model.dart';
 import 'package:bluebits_app/features/profile/data/repository/profile_repo.dart';
 import 'package:bluebits_app/features/profile/presentation/logic/profile_cubit.dart';
 import 'package:bluebits_app/features/profile/presentation/screens/profile_screen.dart';
@@ -63,17 +65,25 @@ class _LayoutAppState extends State<LayoutApp> {
     repo: ProfileRepo(profileApi: ProfileApi()),
   );
 
-  // احتفاظ محلي بالحالة القديمة لمنع الاختفاء أو العودة للقيم الافتراضية أثناء التحميل
-  Data? _cachedProfileData;
   late final List<Widget> _pages;
 
   static const String _profileImageBaseUrl = 'https://bluebits24.onrender.com/';
+
+  // تمت إضافة هذه المتغيرات للاحتفاظ بالبيانات القديمة حتى نجاح التحديث
+  String _cachedAccountName = "مستخدم";
+  String _cachedAccountEmail = "غير متوفر";
+  ImageProvider _cachedAvatar = const AssetImage('assets/images/avatar.png');
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      const HomeScreen(),
+      BlocProvider(
+        create: (context) => AnnouncementCubit(
+          repository: AnnouncementRepository(AnnouncementApiService()),
+        )..fetchAllAnnouncements(),
+        child: const HomeScreen(),
+      ),
       BlocProvider(
         create: (context) => LecturesCubit()..backToYears(),
         child: const LecturesScreen(),
@@ -127,7 +137,7 @@ class _LayoutAppState extends State<LayoutApp> {
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.sizeOf(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
     final theme = Theme.of(context);
 
     return BlocProvider.value(
@@ -151,7 +161,7 @@ class _LayoutAppState extends State<LayoutApp> {
           BlocProvider(
             create: (context) => LessonLectureCubit(
               repository: LessonLectureRepository(LessonLectureApiService()),
-            ),
+            )..fetchAllLectures(),
           ),
           BlocProvider(
             create: (context) => AdminSurveyCubit(
@@ -185,11 +195,11 @@ class _LayoutAppState extends State<LayoutApp> {
           },
           child: Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
-            drawer: _buildSideDrawer(screenSize, context),
+            drawer: _buildSideDrawer(screenWidth, context),
             appBar: CustomAppBar(),
             floatingActionButton: ChatBotFab(),
             body: SafeArea(
-              child: ValueListenableBuilder<int>(
+              child: ValueListenableBuilder(
                 valueListenable: _selectedDrawerIndex,
                 builder: (context, selectedDrawerIndex, child) {
                   return Stack(
@@ -210,196 +220,44 @@ class _LayoutAppState extends State<LayoutApp> {
     );
   }
 
-  // --- عناصر القائمة الجانبية (Drawer Components) ---
-
-  Widget _buildSideDrawer(Size screenSize, BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Drawer(
-      width: screenSize.width * 0.78,
-      backgroundColor: colorScheme.surface,
-      child: Column(
-        children: [
-          _buildDrawerHeader(screenSize, theme),
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                _buildDrawerTile(
-                  0,
-                  Icons.home_outlined,
-                  "الرئيسية",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  1,
-                  Icons.book_outlined,
-                  "المحاضرات",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  2,
-                  Icons.quiz_outlined,
-                  "بنوك الأسئلة",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  3,
-                  Icons.task_alt,
-                  "قائمة المهام",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  4,
-                  Icons.person_outline,
-                  "الملف الشخصي",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  5,
-                  Icons.admin_panel_settings,
-                  "لوحة التحكم",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  6,
-                  Icons.poll_outlined,
-                  "إدارة الاستبيانات",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  7,
-                  Icons.assignment,
-                  "استبيان المقررات",
-                  screenSize,
-                  context,
-                ),
-                _buildDrawerTile(
-                  8,
-                  Icons.edit_calendar_outlined,
-                  "إعدادات الجدولة",
-                  screenSize,
-                  context,
-                ),
-              ],
-            ),
-          ),
-          const Divider(),
-          _buildLogoutTile(screenSize, colorScheme, context),
-          SizedBox(height: screenSize.height * 0.02),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawerHeader(Size screenSize, ThemeData theme) {
-    final colorScheme = theme.colorScheme;
-
-    return BlocBuilder<ProfileCubit, ProfileState>(
-      builder: (context, state) {
-        // عدم مسح البيانات القديمة عند التحميل؛ وتحديث الكاش فقط عند إرجاع حالة النجاح
-        if (state is ProfileSuccess) {
-          _cachedProfileData = state.data;
-        } else if (state is ProfileUpdateSuccess) {
-          _cachedProfileData = state.updatedData;
-        }
-
-        // عرض بيانات الكاش المخزنة سلفاً أثناء حالات التحديث والرفع
-        final String accountName = _cachedProfileData?.name ?? "مستخدم";
-        final String accountEmail = _cachedProfileData?.email ?? "غير متوفر";
-        final String? imagePath = _cachedProfileData?.profileImage;
-
-        ImageProvider avatar = const AssetImage('assets/images/avatar.png');
-        if (imagePath != null && imagePath.isNotEmpty) {
-          final imageUrl =
-              imagePath.startsWith('http://') ||
-                  imagePath.startsWith('https://')
-              ? imagePath
-              : '$_profileImageBaseUrl${imagePath.replaceFirst(RegExp(r'^/+'), '')}';
-          avatar = NetworkImage(imageUrl);
-        }
-
-        return UserAccountsDrawerHeader(
-          decoration: BoxDecoration(color: colorScheme.surface),
-          margin: EdgeInsets.zero,
-          currentAccountPicture: CircleAvatar(
-            radius: screenSize.width * 0.09,
-            backgroundColor: colorScheme.primary.withOpacity(0.1),
-            backgroundImage: avatar,
-            onBackgroundImageError: (_, __) {},
-          ),
-          accountName: Text(
-            accountName,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: colorScheme.onSurface,
-              fontSize: screenSize.width * 0.04,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          accountEmail: Text(
-            accountEmail,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: ColorsManager.greyText,
-              fontSize: screenSize.width * 0.032,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildDrawerTile(
     int index,
     IconData icon,
     String title,
-    Size screenSize,
+    double width,
     BuildContext context,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return ValueListenableBuilder<int>(
-      valueListenable: _selectedDrawerIndex,
-      builder: (context, selectedIndex, _) {
-        final bool isSelected = selectedIndex == index;
-
+    return StatefulBuilder(
+      builder: (context, setStateDrowerTile) {
+        bool isSelected = _selectedDrawerIndex.value == index;
         return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenSize.width * 0.025,
-            vertical: screenSize.height * 0.005,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: Material(
             color: isSelected ? colorScheme.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(screenSize.width * 0.03),
+            borderRadius: BorderRadius.circular(15),
             child: ListTile(
-              dense: true,
               leading: Icon(
                 icon,
-                size: screenSize.width * 0.055,
                 color: isSelected
                     ? colorScheme.onPrimary
                     : colorScheme.onSurface.withOpacity(0.7),
               ),
               title: Text(
                 title,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                style: TextStyle(
                   color: isSelected
                       ? colorScheme.onPrimary
                       : colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: screenSize.width * 0.036,
                 ),
               ),
               onTap: () {
-                _selectedDrawerIndex.value = index;
+                setStateDrowerTile(() {
+                  _selectedDrawerIndex.value = index;
+                });
                 Navigator.pop(context);
               },
             ),
@@ -409,30 +267,147 @@ class _LayoutAppState extends State<LayoutApp> {
     );
   }
 
-  Widget _buildLogoutTile(
-    Size screenSize,
-    ColorScheme colorScheme,
-    BuildContext context,
-  ) {
-    return ListTile(
-      dense: true,
-      leading: Icon(
-        Icons.logout,
-        color: colorScheme.error,
-        size: screenSize.width * 0.055,
+  Widget _buildSideDrawer(double width, BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Drawer(
+      width: width * 0.75,
+      backgroundColor: colorScheme.surface,
+      child: Column(
+        children: [
+          BlocBuilder<ProfileCubit, ProfileState>(
+            builder: (context, state) {
+              // نقوم بتحديث البيانات المخزنة فقط إذا نجحت العملية
+              // أما إذا كانت الحالة جاري التحميل، سيتم استخدام البيانات المخزنة القديمة
+              if (state is ProfileSuccess) {
+                _cachedAccountName = state.data.name ?? _cachedAccountName;
+                _cachedAccountEmail = state.data.email ?? _cachedAccountEmail;
+
+                if (state.data.profileImage != null &&
+                    state.data.profileImage!.isNotEmpty) {
+                  final imagePath = state.data.profileImage!;
+                  final imageUrl =
+                      imagePath.startsWith('http://') ||
+                          imagePath.startsWith('https://')
+                      ? imagePath
+                      : '$_profileImageBaseUrl${imagePath.replaceFirst(RegExp(r'^/+'), '')}';
+                  _cachedAvatar = NetworkImage(imageUrl);
+                }
+              }
+
+              return UserAccountsDrawerHeader(
+                decoration: BoxDecoration(color: colorScheme.surface),
+                currentAccountPicture: CircleAvatar(
+                  backgroundColor: colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: _cachedAvatar,
+                  onBackgroundImageError: (exception, stackTrace) {
+                    // التقاط خطأ جلب الصورة بصمت لتجنب انهيار الواجهة
+                  },
+                ),
+                accountName: Text(
+                  _cachedAccountName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                accountEmail: Text(
+                  _cachedAccountEmail,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: ColorsManager.greyText,
+                  ),
+                ),
+              );
+            },
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildDrawerTile(
+                  0,
+                  Icons.home_outlined,
+                  "الرئيسية",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  1,
+                  Icons.book_outlined,
+                  "المحاضرات",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  2,
+                  Icons.quiz_outlined,
+                  "بنوك الأسئلة",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  3,
+                  Icons.task_alt,
+                  "قائمة المهام",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  4,
+                  Icons.person_outline,
+                  "الملف الشخصي",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  5,
+                  Icons.admin_panel_settings,
+                  "لوحة التحكم",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  6,
+                  Icons.poll_outlined,
+                  "إدارة الاستبيانات",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  7,
+                  Icons.assignment,
+                  "استبيان المقررات",
+                  width,
+                  context,
+                ),
+                _buildDrawerTile(
+                  8,
+                  Icons.edit_calendar_outlined,
+                  "إعدادات الجدولة",
+                  width,
+                  context,
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.logout, color: colorScheme.error),
+            title: Text(
+              "تسجيل الخروج",
+              style: TextStyle(
+                color: colorScheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              context.read<AuthCubit>().logout();
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
       ),
-      title: Text(
-        "تسجيل الخروج",
-        style: TextStyle(
-          color: colorScheme.error,
-          fontWeight: FontWeight.bold,
-          fontSize: screenSize.width * 0.036,
-        ),
-      ),
-      onTap: () {
-        Navigator.pop(context);
-        context.read<AuthCubit>().logout();
-      },
     );
   }
 }
