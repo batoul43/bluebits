@@ -1,3 +1,18 @@
+// دالة مساعدة لتحويل أي قيمة إلى نص بأمان ومنع انهيار التطبيق
+String? _safeParseString(dynamic value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  if (value is Map) {
+    // إذا قام الخادم بإرجاع كائن (Populated Object) بدلاً من نص، نحاول استخراج الـ ID
+    if (value.containsKey('_id')) {
+      return value['_id'].toString();
+    }
+    // في حال كان كائن رسالة خطأ أو تاريخ
+    return value.toString();
+  }
+  return value.toString();
+}
+
 class SettingPerSemesterModel {
   bool? isSuccess;
   String? message;
@@ -13,9 +28,15 @@ class SettingPerSemesterModel {
 
   SettingPerSemesterModel.fromJson(Map<String, dynamic> json) {
     isSuccess = json['isSuccess'];
-    message = json['message'];
-    statusCode = json['statusCode'];
-    data = json['data'] != null
+    // استخدام الدالة الآمنة لتجنب انهيار التطبيق إذا كانت الرسالة كائناً
+    message = _safeParseString(json['message']);
+
+    // تأمين تحويل الأرقام
+    statusCode = json['statusCode'] != null
+        ? int.tryParse(json['statusCode'].toString())
+        : null;
+
+    data = (json['data'] != null && json['data'] is Map<String, dynamic>)
         ? PopulatedScheduleConfigData.fromJson(json['data'])
         : null;
   }
@@ -62,29 +83,49 @@ class PopulatedScheduleConfigData {
   });
 
   PopulatedScheduleConfigData.fromJson(Map<String, dynamic> json) {
-    sId = json['_id'];
-    semesterId = json['semesterId'] != null
+    sId = _safeParseString(json['_id']);
+
+    semesterId =
+        (json['semesterId'] != null &&
+            json['semesterId'] is Map<String, dynamic>)
         ? PopulatedSemester.fromJson(json['semesterId'])
         : null;
-    academicYear = json['academicYear'];
-    startDate = json['startDate'];
-    endDate = json['endDate'];
-    excludedDates = json['excludedDates'] != null
-        ? json['excludedDates'].cast<String>()
+
+    academicYear = _safeParseString(json['academicYear']);
+    startDate = _safeParseString(json['startDate']);
+    endDate = _safeParseString(json['endDate']);
+
+    // تأمين المصفوفات بدلاً من استخدام cast() التي قد تسبب أعطالاً
+    excludedDates =
+        json['excludedDates'] != null && json['excludedDates'] is List
+        ? (json['excludedDates'] as List)
+              .map((e) => _safeParseString(e) ?? '')
+              .toList()
         : [];
-    excludedDaysOfWeek = json['excludedDaysOfWeek'] != null
-        ? json['excludedDaysOfWeek'].cast<int>()
+
+    excludedDaysOfWeek =
+        json['excludedDaysOfWeek'] != null && json['excludedDaysOfWeek'] is List
+        ? (json['excludedDaysOfWeek'] as List)
+              .map((e) => int.tryParse(e.toString()) ?? 0)
+              .toList()
         : [];
-    timeslotsPerDay = json['timeslotsPerDay'];
-    if (json['subjectsConfig'] != null) {
+
+    timeslotsPerDay = json['timeslotsPerDay'] != null
+        ? int.tryParse(json['timeslotsPerDay'].toString())
+        : null;
+
+    if (json['subjectsConfig'] != null && json['subjectsConfig'] is List) {
       subjectsConfig = <PopulatedSubjectConfig>[];
-      json['subjectsConfig'].forEach((v) {
-        subjectsConfig!.add(PopulatedSubjectConfig.fromJson(v));
-      });
+      for (var v in (json['subjectsConfig'] as List)) {
+        if (v is Map<String, dynamic>) {
+          subjectsConfig!.add(PopulatedSubjectConfig.fromJson(v));
+        }
+      }
     }
-    createdBy = json['createdBy'];
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
+
+    createdBy = _safeParseString(json['createdBy']);
+    createdAt = _safeParseString(json['createdAt']);
+    updatedAt = _safeParseString(json['updatedAt']);
   }
 
   Map<String, dynamic> toJson() {
@@ -121,11 +162,18 @@ class PopulatedSubjectConfig {
   });
 
   PopulatedSubjectConfig.fromJson(Map<String, dynamic> json) {
-    subjectId = json['subjectId'] != null
+    subjectId =
+        (json['subjectId'] != null && json['subjectId'] is Map<String, dynamic>)
         ? PopulatedSubjectInfo.fromJson(json['subjectId'])
         : null;
-    carriedStudentsCount = json['carriedStudentsCount'];
-    examDurationOverride = json['examDurationOverride'];
+
+    carriedStudentsCount = json['carriedStudentsCount'] != null
+        ? int.tryParse(json['carriedStudentsCount'].toString())
+        : null;
+
+    examDurationOverride = json['examDurationOverride'] != null
+        ? int.tryParse(json['examDurationOverride'].toString())
+        : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -155,15 +203,20 @@ class PopulatedSubjectInfo {
   });
 
   PopulatedSubjectInfo.fromJson(Map<String, dynamic> json) {
-    sId = json['_id'];
-    name = json['name'];
-    yearId = json['yearId'] != null
+    sId = _safeParseString(json['_id']);
+    name = _safeParseString(json['name']);
+
+    yearId = (json['yearId'] != null && json['yearId'] is Map<String, dynamic>)
         ? PopulatedYear.fromJson(json['yearId'])
         : null;
-    semesterId = json['semesterId'] != null
+
+    semesterId =
+        (json['semesterId'] != null &&
+            json['semesterId'] is Map<String, dynamic>)
         ? PopulatedSemester.fromJson(json['semesterId'])
         : null;
-    createdBy = json['createdBy'];
+
+    createdBy = _safeParseString(json['createdBy']);
   }
 
   Map<String, dynamic> toJson() {
@@ -190,10 +243,10 @@ class PopulatedSemester {
   PopulatedSemester({this.sId, this.name, this.createdAt, this.updatedAt});
 
   PopulatedSemester.fromJson(Map<String, dynamic> json) {
-    sId = json['_id'];
-    name = json['name'];
-    createdAt = json['createdAt'];
-    updatedAt = json['updatedAt'];
+    sId = _safeParseString(json['_id']);
+    name = _safeParseString(json['name']);
+    createdAt = _safeParseString(json['createdAt']);
+    updatedAt = _safeParseString(json['updatedAt']);
   }
 
   Map<String, dynamic> toJson() {
@@ -214,9 +267,12 @@ class PopulatedYear {
   PopulatedYear({this.sId, this.name, this.order});
 
   PopulatedYear.fromJson(Map<String, dynamic> json) {
-    sId = json['_id'];
-    name = json['name'];
-    order = json['order'];
+    sId = _safeParseString(json['_id']);
+    name = _safeParseString(json['name']);
+
+    order = json['order'] != null
+        ? int.tryParse(json['order'].toString())
+        : null;
   }
 
   Map<String, dynamic> toJson() {

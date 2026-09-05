@@ -21,18 +21,17 @@ class ScheduleConfigModel {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['isSuccess'] = isSuccess;
-    data['message'] = message;
-    data['statusCode'] = statusCode;
-    if (this.data != null) {
-      data['data'] = this.data!.toJson();
-    }
-    return data;
+    return {
+      'isSuccess': isSuccess,
+      'message': message,
+      'statusCode': statusCode,
+      if (data != null) 'data': data!.toJson(),
+    };
   }
 }
 
 class ScheduleConfigData {
+  String? sId;
   String? semesterId;
   String? academicYear;
   String? startDate;
@@ -41,12 +40,13 @@ class ScheduleConfigData {
   List<int>? excludedDaysOfWeek;
   int? timeslotsPerDay;
   List<SubjectConfig>? subjectsConfig;
+  List<dynamic>? fixedSubjects;
   String? createdBy;
-  String? sId;
   String? createdAt;
   String? updatedAt;
 
   ScheduleConfigData({
+    this.sId,
     this.semesterId,
     this.academicYear,
     this.startDate,
@@ -55,13 +55,14 @@ class ScheduleConfigData {
     this.excludedDaysOfWeek,
     this.timeslotsPerDay,
     this.subjectsConfig,
+    this.fixedSubjects,
     this.createdBy,
-    this.sId,
     this.createdAt,
     this.updatedAt,
   });
 
   ScheduleConfigData.fromJson(Map<String, dynamic> json) {
+    sId = json['_id'];
     semesterId = json['semesterId'];
     academicYear = json['academicYear'];
     startDate = json['startDate'];
@@ -74,34 +75,35 @@ class ScheduleConfigData {
         : [];
     timeslotsPerDay = json['timeslotsPerDay'];
     if (json['subjectsConfig'] != null) {
-      subjectsConfig = <SubjectConfig>[];
-      json['subjectsConfig'].forEach((v) {
-        subjectsConfig!.add(SubjectConfig.fromJson(v));
-      });
+      subjectsConfig = (json['subjectsConfig'] as List)
+          .map((v) => SubjectConfig.fromJson(v))
+          .toList();
     }
+    fixedSubjects = json['fixedSubjects'] != null
+        ? List<dynamic>.from(json['fixedSubjects'])
+        : [];
     createdBy = json['createdBy'];
-    sId = json['_id'];
     createdAt = json['createdAt'];
     updatedAt = json['updatedAt'];
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['semesterId'] = semesterId;
-    data['academicYear'] = academicYear;
-    data['startDate'] = startDate;
-    data['endDate'] = endDate;
-    data['excludedDates'] = excludedDates;
-    data['excludedDaysOfWeek'] = excludedDaysOfWeek;
-    data['timeslotsPerDay'] = timeslotsPerDay;
-    if (subjectsConfig != null) {
-      data['subjectsConfig'] = subjectsConfig!.map((v) => v.toJson()).toList();
-    }
-    data['createdBy'] = createdBy;
-    data['_id'] = sId;
-    data['createdAt'] = createdAt;
-    data['updatedAt'] = updatedAt;
-    return data;
+    return {
+      '_id': sId,
+      'semesterId': semesterId,
+      'academicYear': academicYear,
+      'startDate': startDate,
+      'endDate': endDate,
+      'excludedDates': excludedDates,
+      'excludedDaysOfWeek': excludedDaysOfWeek,
+      'timeslotsPerDay': timeslotsPerDay,
+      if (subjectsConfig != null)
+        'subjectsConfig': subjectsConfig!.map((v) => v.toJson()).toList(),
+      'fixedSubjects': fixedSubjects,
+      'createdBy': createdBy,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+    };
   }
 }
 
@@ -123,10 +125,10 @@ class SubjectConfig {
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['subjectId'] = subjectId;
-    data['carriedStudentsCount'] = carriedStudentsCount;
-    data['examDurationOverride'] = examDurationOverride;
-    return data;
+    return {
+      'subjectId': subjectId,
+      'carriedStudentsCount': carriedStudentsCount,
+      'examDurationOverride': examDurationOverride,
+    };
   }
 }

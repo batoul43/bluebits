@@ -2,46 +2,61 @@ class ConflictsResponseModel {
   bool? isSuccess;
   String? message;
   int? statusCode;
-  List<ConflictItem>? conflicts;
+  ConflictsData? data;
 
   ConflictsResponseModel({
     this.isSuccess,
     this.message,
     this.statusCode,
-    this.conflicts,
+    this.data,
   });
 
   ConflictsResponseModel.fromJson(Map<String, dynamic> json) {
     isSuccess = json['isSuccess'];
     message = json['message'];
     statusCode = json['statusCode'];
+    data = json['data'] != null ? ConflictsData.fromJson(json['data']) : null;
+  }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'isSuccess': isSuccess,
+      'message': message,
+      'statusCode': statusCode,
+      if (data != null) 'data': data!.toJson(),
+    };
+  }
+}
+
+class ConflictsData {
+  String? sId;
+  String? semesterId;
+  List<ConflictItem>? conflicts;
+
+  ConflictsData({this.sId, this.semesterId, this.conflicts});
+
+  ConflictsData.fromJson(Map<String, dynamic> json) {
+    sId = json['_id'];
+    semesterId = json['semesterId'];
     if (json['conflicts'] != null) {
-      conflicts = List<ConflictItem>.from(
-        json['conflicts'].map((x) => ConflictItem.fromJson(x)),
-      );
-    } else if (json['data'] != null) {
-      conflicts = List<ConflictItem>.from(
-        json['data'].map((x) => ConflictItem.fromJson(x)),
-      );
+      conflicts = (json['conflicts'] as List)
+          .map((x) => ConflictItem.fromJson(x))
+          .toList();
     }
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['isSuccess'] = isSuccess;
-    data['message'] = message;
-    data['statusCode'] = statusCode;
-    if (conflicts != null) {
-      data['conflicts'] = conflicts!.map((v) => v.toJson()).toList();
-    }
-    return data;
+    return {
+      '_id': sId,
+      'semesterId': semesterId,
+      if (conflicts != null)
+        'conflicts': conflicts!.map((v) => v.toJson()).toList(),
+    };
   }
 }
 
-// 4. الكلاس الموحد للتعارضات (يحل محل ExamConflict و ConflictItem القديم)
 class ConflictItem {
-  String? type; // HARD, MEDIUM, SOFT
+  String? type;
   String? examA;
   String? examAName;
   String? examB;
@@ -56,20 +71,20 @@ class ConflictItem {
   });
 
   ConflictItem.fromJson(Map<String, dynamic> json) {
-    type = json['type'] as String?;
-    examA = json['examA'] as String?;
-    examAName = json['examAName'] as String?;
-    examB = json['examB'] as String?;
-    examBName = json['examBName'] as String?;
+    type = json['type'];
+    examA = json['examA'];
+    examAName = json['examAName'];
+    examB = json['examB'];
+    examBName = json['examBName'];
   }
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['type'] = type;
-    data['examA'] = examA;
-    data['examAName'] = examAName;
-    data['examB'] = examB;
-    data['examBName'] = examBName;
-    return data;
+    return {
+      'type': type,
+      'examA': examA,
+      'examAName': examAName,
+      'examB': examB,
+      'examBName': examBName,
+    };
   }
 }

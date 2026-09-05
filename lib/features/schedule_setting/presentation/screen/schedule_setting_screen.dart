@@ -1,7 +1,8 @@
 import 'package:bluebits_app/core/shares/semester/semester_cubit/semester_cubit.dart';
+import 'package:bluebits_app/core/shares/subjects/subjects_cubit/subject_cubit.dart';
+import 'package:bluebits_app/features/schedule_setting/data/models/schedule_solve_model.dart';
 import 'package:bluebits_app/features/schedule_setting/presentation/logic/schedule_setting_cubit.dart';
 import 'package:bluebits_app/features/schedule_setting/data/models/schedule_result_model.dart';
-import 'package:bluebits_app/features/schedule_setting/data/models/schedule_solve_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -20,15 +21,31 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
   String _currentAcademicYear = "2026-2027";
   dynamic _currentSettings;
 
+  bool _isLoadingSettings = false;
+  String? _settingsError;
+
   @override
   void initState() {
     super.initState();
     context.read<SemesterCubit>().fetchAllSemesters();
+    context.read<SubjectCubit>().getAllSubjects();
   }
 
   void _clearLoading() {
     if (mounted) {
       setState(() => _activeAction = ActiveAction.none);
+    }
+  }
+
+  void _refreshCurrentSemester() {
+    if (selectedSemesterId != null) {
+      setState(() {
+        _isLoadingSettings = true;
+        _settingsError = null;
+      });
+      context.read<ScheduleSettingCubit>().getSettingPerSemester(
+        selectedSemesterId!,
+      );
     }
   }
 
@@ -50,104 +67,92 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
         centerTitle: true,
         elevation: 0,
       ),
-      body: MultiBlocListener(
-        listeners: [
-          BlocListener<ScheduleSettingCubit, ScheduleSettingState>(
-            listener: (context, state) {
-              // --- معالجة تسلسل عملية Solve ---
-              if (_activeAction == ActiveAction.solve) {
-                if (state is ScheduleConflictLoaded) {
-                  try {
-                    final Map<String, dynamic> timefoldData =
-                        (state.scheduleConflict as dynamic).toJson();
-                    context.read<ScheduleSettingCubit>().solveTimefold(
-                      timefoldData,
-                    );
-                  } catch (e) {
-                    _showSnackBar(
-                      context,
-                      'خطأ في تحويل بيانات Timefold: $e',
-                      theme.colorScheme.error,
-                    );
-                    _clearLoading();
-                  }
-                } else if (state is ScheduleSolvetimefoldLoaded) {
-                  context.read<ScheduleSettingCubit>().solveSchedule(
-                    selectedSemesterId ?? "",
-                    _currentAcademicYear,
-                  );
-                } else if (state is ScheduleSolveLoaded) {
-                  _clearLoading();
-                  _showSnackBar(
-                    context,
-                    'تمت عملية الجدولة (Solve) بنجاح!',
-                    Colors.green,
-                  );
-                  if (selectedSemesterId != null) {
-                    context.read<ScheduleSettingCubit>().getScheduleResult(
-                      selectedSemesterId!,
-                    );
-                  }
-                } else if (state is ScheduleSettingError) {
-                  _clearLoading();
-                  _showSnackBar(
-                    context,
-                    state.message,
-                    theme.colorScheme.error,
-                  );
-                }
+      body: BlocListener<ScheduleSettingCubit, ScheduleSettingState>(
+        listener: (context, state) {
+          if (_activeAction == ActiveAction.solve) {
+            if (state is ScheduleConflictLoaded) {
+              try {
+                final Map<String, dynamic> timefoldData =
+                    (state.scheduleConflict as dynamic).toJson();
+                context.read<ScheduleSettingCubit>().solveTimefold(
+                  timefoldData,
+                );
+              } catch (e) {
+                _showSnackBar(
+                  context,
+                  'خطأ في تحويل بيانات Timefold: $e',
+                  theme.colorScheme.error,
+                );
+                _clearLoading();
               }
-              // --- معالجة العمليات الأخرى (Result, Publish, الخ) ---
-              else {
-                if (state is ScheduleResultLoaded) {
-                  _clearLoading();
-                  _showResultDialog(context, state.scheduleResultModel);
-                } else if (state is SchedulePublishLoaded) {
-                  _clearLoading();
-                  _showSnackBar(
-                    context,
-                    'تم نشر الجدول للطلاب بنجاح!',
-                    Colors.green,
-                  );
-                  _refreshCurrentSemester();
-                } else if (state is SettingPerSemesterLoaded) {
-                  setState(() {
-                    _currentSettings = state.settingPerSemesterModel;
-                  });
-                  final config = state.settingPerSemesterModel.data;
-                  if (config != null &&
-                      (config as dynamic).academicYear != null) {
-                    _currentAcademicYear = (config as dynamic).academicYear
-                        .toString();
-                  }
-                } else if (state is ScheduleSettingActionResult) {
-                  _showSnackBar(context, state.message, Colors.green);
-                  _refreshCurrentSemester();
-                } else if (state is UpdateScheduleConfig) {
-                  _showSnackBar(context, 'تم التحديث بنجاح', Colors.green);
-                  _refreshCurrentSemester();
-                } else if (state is DeleteSuccess) {
-                  _showSnackBar(
-                    context,
-                    state.message,
-                    theme.colorScheme.error,
-                  );
-                  setState(() {
-                    selectedSemesterId = null;
-                    _currentSettings = null;
-                  });
-                } else if (state is ScheduleSettingError) {
-                  _clearLoading();
-                  _showSnackBar(
-                    context,
-                    state.message,
-                    theme.colorScheme.error,
-                  );
-                }
+            } else if (state is ScheduleSolvetimefoldLoaded) {
+              context.read<ScheduleSettingCubit>().solveSchedule(
+                selectedSemesterId ?? "",
+                _currentAcademicYear,
+              );
+            } else if (state is ScheduleSolveLoaded) {
+              _clearLoading();
+              _showSnackBar(
+                context,
+                'تمت عملية الجدولة (Solve) بنجاح!',
+                Colors.green,
+              );
+              if (selectedSemesterId != null) {
+                context.read<ScheduleSettingCubit>().getScheduleResult(
+                  selectedSemesterId!,
+                );
               }
-            },
-          ),
-        ],
+            } else if (state is ScheduleSettingError) {
+              _clearLoading();
+              _showSnackBar(context, state.message, theme.colorScheme.error);
+            }
+          } else {
+            if (state is ScheduleResultLoaded) {
+              _clearLoading();
+              _showResultDialog(context, state.scheduleResultModel);
+            } else if (state is SchedulePublishLoaded) {
+              _clearLoading();
+              _showSnackBar(
+                context,
+                'تم نشر الجدول للطلاب بنجاح!',
+                Colors.green,
+              );
+              _refreshCurrentSemester();
+            } else if (state is SettingPerSemesterLoaded) {
+              setState(() {
+                _isLoadingSettings = false;
+                _settingsError = null;
+                _currentSettings = state.settingPerSemesterModel;
+              });
+              final config = state.settingPerSemesterModel.data;
+              if (config != null && (config as dynamic).academicYear != null) {
+                _currentAcademicYear = (config as dynamic).academicYear
+                    .toString();
+              }
+            } else if (state is ScheduleSettingActionResult) {
+              _showSnackBar(context, state.message, Colors.green);
+              _refreshCurrentSemester();
+            } else if (state is UpdateScheduleConfig) {
+              _showSnackBar(context, 'تم التحديث بنجاح', Colors.green);
+              _refreshCurrentSemester();
+            } else if (state is DeleteSuccess) {
+              _showSnackBar(context, state.message, theme.colorScheme.error);
+              setState(() {
+                selectedSemesterId = null;
+                _currentSettings = null;
+              });
+            } else if (state is ScheduleSettingError) {
+              _clearLoading();
+              _showSnackBar(context, state.message, theme.colorScheme.error);
+              if (_isLoadingSettings) {
+                setState(() {
+                  _isLoadingSettings = false;
+                  _settingsError = state.message;
+                });
+              }
+            }
+          }
+        },
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
@@ -165,6 +170,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                     label: const Text('إنشاء إعدادات جديدة'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -184,14 +192,6 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
         ),
       ),
     );
-  }
-
-  void _refreshCurrentSemester() {
-    if (selectedSemesterId != null) {
-      context.read<ScheduleSettingCubit>().getSettingPerSemester(
-        selectedSemesterId!,
-      );
-    }
   }
 
   Widget _buildOperationButtons(BuildContext context, ThemeData theme) {
@@ -238,11 +238,7 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
           color: Colors.green.shade700,
           textColor: Colors.white,
           isLoading: _activeAction == ActiveAction.publish,
-          onPressed: isBusy
-              ? null
-              : () {
-                  _confirmPublish(context, theme);
-                },
+          onPressed: isBusy ? null : () => _confirmPublish(context, theme),
         ),
       ],
     );
@@ -292,30 +288,7 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
     if (rawDate == null || rawDate.trim().isEmpty) return '-';
     try {
       final parsedDate = DateTime.parse(rawDate);
-      final weekdays = [
-        'الإثنين',
-        'الثلاثاء',
-        'الأربعاء',
-        'الخميس',
-        'الجمعة',
-        'السبت',
-        'الأحد',
-      ];
-      final months = [
-        'يناير',
-        'فبراير',
-        'مارس',
-        'أبريل',
-        'مايو',
-        'يونيو',
-        'يوليو',
-        'أغسطس',
-        'سبتمبر',
-        'أكتوبر',
-        'نوفمبر',
-        'ديسمبر',
-      ];
-      return '${weekdays[parsedDate.weekday - 1]}، ${parsedDate.day} ${months[parsedDate.month - 1]} ${parsedDate.year}';
+      return '${parsedDate.year}-${parsedDate.month.toString().padLeft(2, '0')}-${parsedDate.day.toString().padLeft(2, '0')}';
     } catch (_) {
       return rawDate;
     }
@@ -636,6 +609,10 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
         if (state is SemesterLoading) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is SemesterLoaded) {
+          final isValueValid =
+              selectedSemesterId == null ||
+              state.semesters.any((s) => s.id == selectedSemesterId);
+
           return DropdownButtonFormField<String>(
             isExpanded: true,
             menuMaxHeight: 300,
@@ -646,9 +623,12 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                 Icons.calendar_month,
                 color: theme.colorScheme.primary,
               ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             dropdownColor: theme.colorScheme.surface,
-            value: selectedSemesterId,
+            value: isValueValid ? selectedSemesterId : null,
             items: state.semesters.map((semester) {
               return DropdownMenuItem<String>(
                 value: semester.id,
@@ -663,6 +643,10 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
               setState(() {
                 selectedSemesterId = value;
                 _currentSettings = null;
+                _settingsError = null;
+                if (value != null) {
+                  _isLoadingSettings = true;
+                }
               });
               if (value != null) {
                 context.read<ScheduleSettingCubit>().getSettingPerSemester(
@@ -687,8 +671,53 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
       return _buildEmptyState('يرجى اختيار فصل دراسي لعرض إعداداته', theme);
     }
 
-    if (_currentSettings == null) {
+    if (_isLoadingSettings) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_settingsError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
+            // const SizedBox(height: 16),
+            // Text(
+            //   'عذراً، حدث خطأ',
+            //   style: theme.textTheme.titleLarge?.copyWith(
+            //     color: theme.colorScheme.error,
+            //     fontWeight: FontWeight.bold,
+            //   ),
+            // ),
+            const SizedBox(height: 8),
+            _buildEmptyState('لا توجد إعدادات لهذا الفصل.', theme),
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(horizontal: 24),
+            //   child: Text(
+            //     _settingsError!,
+            //     style: theme.textTheme.bodyMedium,
+            //     textAlign: TextAlign.center,
+            //   ),
+            // ),
+            // const SizedBox(height: 24),
+            // ElevatedButton.icon(
+            //   onPressed: _refreshCurrentSemester,
+            //   icon: const Icon(Icons.refresh),
+            //   label: const Text('إعادة المحاولة'),
+            //   style: ElevatedButton.styleFrom(
+            //     padding: const EdgeInsets.symmetric(
+            //       horizontal: 24,
+            //       vertical: 12,
+            //     ),
+            //   ),
+            // ),
+          ],
+        ),
+      );
+    }
+
+    if (_currentSettings == null) {
+      return _buildEmptyState('لا توجد إعدادات لهذا الفصل.', theme);
     }
 
     final config = _currentSettings!.data;
@@ -697,6 +726,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
     }
 
     final configId = (config as dynamic).sId ?? (config as dynamic).id;
+    // جلب قائمة المواد المثبتة لكي نعرضها في قسم مخصص
+    final List<dynamic> subjectsList =
+        (config as dynamic).subjectsConfig as List<dynamic>? ?? [];
 
     return SingleChildScrollView(
       child: Card(
@@ -760,6 +792,83 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                 '${(config as dynamic).timeslotsPerDay ?? 0}',
                 theme,
               ),
+
+              // تمت إضافة الكود الخاص بعرض قائمة المواد المثبتة هنا
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'المواد المثبتة (Subjects Config):',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (subjectsList.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'لم يتم إضافة أي مواد مثبتة.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.hintColor),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subjectsList.length,
+                  itemBuilder: (context, index) {
+                    final subjectItem = subjectsList[index];
+                    final subInfo = (subjectItem as dynamic).subjectId;
+
+                    String sName = 'غير معروف';
+                    if (subInfo != null) {
+                      try {
+                        sName =
+                            subInfo.name ?? subInfo.sId ?? subInfo.toString();
+                      } catch (_) {
+                        sName = subInfo.toString();
+                      }
+                    }
+
+                    final count =
+                        (subjectItem as dynamic).carriedStudentsCount ?? 0;
+                    final duration =
+                        (subjectItem as dynamic).examDurationOverride ?? 0;
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      elevation: 0,
+                      color: theme.colorScheme.surface,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: theme.dividerColor.withOpacity(0.5),
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.bookmark_added,
+                          color: theme.colorScheme.primary,
+                        ),
+                        title: Text(
+                          sName,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'الطلاب المحملين: $count  |  المدة: $duration دقيقة',
+                        ),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -852,6 +961,180 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
     );
   }
 
+  void _showAddSubjectDialog(
+    BuildContext context,
+    StateSetter parentSetState,
+    List<Map<String, dynamic>> subjectsList,
+    ThemeData theme,
+    SubjectCubit subjectCubit,
+  ) {
+    final countCtrl = TextEditingController();
+    final durationCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    String? selectedSubjectId;
+    String? selectedSubjectName;
+
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width > 600;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => BlocProvider.value(
+        value: subjectCubit,
+        child: StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Text(
+                'إضافة مادة مثبتة',
+                style: theme.textTheme.titleLarge,
+              ),
+              content: SizedBox(
+                width: isDesktop ? 500 : size.width * 0.9,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BlocBuilder<SubjectCubit, SubjectState>(
+                        builder: (context, state) {
+                          if (state is GetSubjectsLoading) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          } else if (state is GetSubjectsSuccess) {
+                            final subjects =
+                                (state.subjectModel as dynamic).data
+                                    as List<dynamic>? ??
+                                [];
+
+                            return DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              decoration: const InputDecoration(
+                                labelText: 'اختر المادة',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: selectedSubjectId,
+                              items: subjects.map((sub) {
+                                final id =
+                                    (sub as dynamic).sId ?? (sub as dynamic).id;
+                                final name =
+                                    (sub as dynamic).name ?? 'مادة بدون اسم';
+                                return DropdownMenuItem<String>(
+                                  value: id.toString(),
+                                  child: Text(name.toString()),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setDialogState(() {
+                                  selectedSubjectId = val;
+
+                                  // التعديل الذي قمنا به لضمان أمان التعيين وعدم انهيار التطبيق
+                                  final matchingSubjects = subjects.where(
+                                    (s) =>
+                                        ((s as dynamic).sId ??
+                                                (s as dynamic).id)
+                                            .toString() ==
+                                        val,
+                                  );
+
+                                  final selectedSub =
+                                      matchingSubjects.isNotEmpty
+                                      ? matchingSubjects.first
+                                      : null;
+
+                                  selectedSubjectName = selectedSub != null
+                                      ? (selectedSub as dynamic).name
+                                      : null;
+                                });
+                              },
+                              validator: (val) => val == null || val.isEmpty
+                                  ? 'يرجى اختيار المادة'
+                                  : null,
+                            );
+                          } else if (state is GetSubjectsFailure) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
+                              child: Text(
+                                'خطأ في جلب المواد: ${state.errorMessage}',
+                                style: TextStyle(
+                                  color: theme.colorScheme.error,
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: countCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'عدد الطلاب المحملين',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: durationCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'مدة الامتحان المخصصة (دقائق)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('إلغاء'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                  ),
+                  onPressed: () {
+                    if (formKey.currentState!.validate() &&
+                        selectedSubjectId != null) {
+                      parentSetState(() {
+                        subjectsList.add({
+                          "subjectId": selectedSubjectId,
+                          "subjectName":
+                              selectedSubjectName ?? selectedSubjectId,
+                          "carriedStudentsCount":
+                              int.tryParse(countCtrl.text) ?? 0,
+                          "examDurationOverride":
+                              int.tryParse(durationCtrl.text) ?? 120,
+                        });
+                      });
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  child: Text(
+                    'إضافة',
+                    style: TextStyle(color: theme.colorScheme.onPrimary),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   void _showSettingsDialog(BuildContext context, {dynamic existingData}) {
     final size = MediaQuery.sizeOf(context);
     final isDesktop = size.width > 600;
@@ -859,6 +1142,7 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
 
     final semesterCubit = context.read<SemesterCubit>();
     final scheduleSettingCubit = context.read<ScheduleSettingCubit>();
+    final subjectCubit = context.read<SubjectCubit>();
 
     String? dialogSelectedSemesterId = existingData?.semesterId is String
         ? existingData?.semesterId
@@ -879,12 +1163,48 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
       text: existingData?.timeslotsPerDay?.toString() ?? '3',
     );
 
+    List<Map<String, dynamic>> subjectsConfigList = [];
+    if (existingData != null) {
+      try {
+        final dynamic existingSubjects =
+            (existingData as dynamic).subjectsConfig;
+        if (existingSubjects != null && existingSubjects is List) {
+          subjectsConfigList = existingSubjects.map<Map<String, dynamic>>((e) {
+            final subObj = (e as dynamic).subjectId;
+            String sId = "";
+            String sName = "";
+
+            if (subObj is String) {
+              sId = subObj;
+              sName = (e as dynamic).subjectName ?? subObj;
+            } else if (subObj != null) {
+              try {
+                sId = subObj.sId ?? subObj.id?.toString() ?? "";
+                sName = subObj.name ?? (e as dynamic).subjectName ?? sId;
+              } catch (_) {
+                sId = subObj.toString();
+                sName = (e as dynamic).subjectName ?? sId;
+              }
+            }
+
+            return {
+              "subjectId": sId,
+              "subjectName": sName,
+              "carriedStudentsCount": (e as dynamic).carriedStudentsCount ?? 0,
+              "examDurationOverride": (e as dynamic).examDurationOverride ?? 0,
+            };
+          }).toList();
+        }
+      } catch (_) {}
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => MultiBlocProvider(
         providers: [
           BlocProvider.value(value: semesterCubit),
           BlocProvider.value(value: scheduleSettingCubit),
+          BlocProvider.value(value: subjectCubit),
         ],
         child: Dialog(
           insetPadding: const EdgeInsets.all(16),
@@ -893,8 +1213,8 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setStateDialog) {
               return Container(
-                width: isDesktop ? 550 : size.width * 0.95,
-                constraints: BoxConstraints(maxHeight: size.height * 0.85),
+                width: isDesktop ? 650 : size.width * 0.95,
+                constraints: BoxConstraints(maxHeight: size.height * 0.9),
                 decoration: BoxDecoration(
                   color: theme.scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(24),
@@ -941,6 +1261,7 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             BlocBuilder<SemesterCubit, SemesterState>(
                               builder: (context, state) {
@@ -948,7 +1269,6 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                   final isValueValid = state.semesters.any(
                                     (s) => s.id == dialogSelectedSemesterId,
                                   );
-
                                   return DropdownButtonFormField<String>(
                                     isExpanded: true,
                                     menuMaxHeight: 300,
@@ -962,6 +1282,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                       prefixIcon: Icon(
                                         Icons.school,
                                         color: theme.colorScheme.primary,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
                                     ),
                                     items: state.semesters.map((semester) {
@@ -997,6 +1320,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                   Icons.date_range,
                                   color: theme.colorScheme.primary,
                                 ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -1009,6 +1335,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                 prefixIcon: Icon(
                                   Icons.calendar_month,
                                   color: theme.colorScheme.primary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               readOnly: true,
@@ -1024,6 +1353,9 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                 prefixIcon: Icon(
                                   Icons.event_busy,
                                   color: theme.colorScheme.primary,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               readOnly: true,
@@ -1041,23 +1373,143 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                   Icons.access_time,
                                   color: theme.colorScheme.primary,
                                 ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
+                            const SizedBox(height: 32),
+
+                            const Divider(),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'المواد المثبتة',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () => _showAddSubjectDialog(
+                                    context,
+                                    setStateDialog,
+                                    subjectsConfigList,
+                                    theme,
+                                    subjectCubit,
+                                  ),
+                                  icon: const Icon(Icons.add, size: 18),
+                                  label: const Text('إضافة مادة'),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            if (subjectsConfigList.isEmpty)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.05,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Text(
+                                  'لم يتم إضافة أي مواد مثبتة بعد.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: theme.hintColor),
+                                ),
+                              )
+                            else
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: subjectsConfigList.length,
+                                itemBuilder: (context, index) {
+                                  final subject = subjectsConfigList[index];
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    elevation: 1,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: theme.dividerColor,
+                                      ),
+                                    ),
+                                    child: ListTile(
+                                      title: Text(
+                                        'المادة: ${subject["subjectName"] ?? subject["subjectId"]}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        'محملين: ${subject["carriedStudentsCount"]}  |  مدة: ${subject["examDurationOverride"]} دقيقة',
+                                      ),
+                                      trailing: IconButton(
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          color: theme.colorScheme.error,
+                                        ),
+                                        onPressed: () {
+                                          setStateDialog(() {
+                                            subjectsConfigList.removeAt(index);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                           ],
                         ),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.scaffoldBackgroundColor,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, -5),
+                          ),
+                        ],
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: TextButton(
                               onPressed: () => Navigator.pop(ctx),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                              ),
                               child: Text(
                                 'إلغاء',
                                 style: TextStyle(
                                   color: theme.textTheme.bodyLarge?.color,
+                                  fontSize: 16,
                                 ),
                               ),
                             ),
@@ -1069,6 +1521,12 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
                                 foregroundColor: theme.colorScheme.onPrimary,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               onPressed: () {
                                 if (dialogSelectedSemesterId == null) {
@@ -1080,6 +1538,17 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                   return;
                                 }
 
+                                final cleanSubjectsConfigList =
+                                    subjectsConfigList.map((e) {
+                                      return {
+                                        "subjectId": e["subjectId"],
+                                        "carriedStudentsCount":
+                                            e["carriedStudentsCount"],
+                                        "examDurationOverride":
+                                            e["examDurationOverride"],
+                                      };
+                                    }).toList();
+
                                 final configData = {
                                   "semesterId": dialogSelectedSemesterId,
                                   "academicYear": academicYearCtrl.text,
@@ -1089,13 +1558,7 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                   "excludedDaysOfWeek": [5, 6],
                                   "timeslotsPerDay":
                                       int.tryParse(timeslotsCtrl.text) ?? 3,
-                                  "subjectsConfig": [
-                                    {
-                                      "subjectId": "6a3d2d9bedcb44989eaa5e37",
-                                      "carriedStudentsCount": 45,
-                                      "examDurationOverride": 120,
-                                    },
-                                  ],
+                                  "subjectsConfig": cleanSubjectsConfigList,
                                 };
 
                                 Navigator.pop(ctx);
@@ -1116,7 +1579,13 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
                                 }
                               },
                               child: Text(
-                                existingData == null ? 'إنشاء' : 'حفظ',
+                                existingData == null
+                                    ? 'إنشاء وحفظ'
+                                    : 'تحديث البيانات',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -1163,6 +1632,8 @@ class _ScheduleSettingsScreenState extends State<ScheduleSettingsScreen> {
         ),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
